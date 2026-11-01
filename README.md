@@ -5,6 +5,15 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/python-cornea-ui-public-repo-template)](https://pypi.org/project/python-cornea-ui-public-repo-template/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License](https://img.shields.io/github/license/coldsofttech/python-cornea-ui-public-repo-template)](LICENSE)
+[![Built with Cornea Shell](https://img.shields.io/badge/built%20with-Cornea%20Shell-blue)](https://github.com/coldsofttech/CorneaShell)
+[![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Typer](https://img.shields.io/badge/Typer-CLI-black)](https://typer.tiangolo.com/)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![PyInstaller](https://img.shields.io/badge/PyInstaller-installers-blue)](https://pyinstaller.org/)
+[![NSIS](https://img.shields.io/badge/NSIS-Windows%20setup-blue)](https://nsis.sourceforge.io/)
+[![nfpm](https://img.shields.io/badge/nfpm-deb%20%26%20rpm-blue)](https://nfpm.goreleaser.com/)
 
 A ready-to-use starting point for public Python tools that come with a command line, an HTTP API and a desktop window. The window runs a React app on Windows, hosted by [Cornea Shell](https://github.com/coldsofttech/CorneaShell). It also includes automated testing, linting, one-step releases to PyPI, and the community and security files a public repository needs.
 
