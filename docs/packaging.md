@@ -34,7 +34,7 @@ uv run python scripts/build_installer.py cli        # only the command line
 uv run python scripts/build_installer.py ui --build-frontend --smoke
 ```
 
-Results are in `dist/installer/`; the PyInstaller folders are in `build/installer/`. `--smoke` starts each built program and checks it answers.
+Results are in `dist/installer/`; the PyInstaller folders are in `build/installer/`. `--smoke` starts each built program and checks it answers. Independent steps (the CLI and UI PyInstaller builds, then the setups and zip, or the deb and rpm) run side by side on as many threads as there are CPUs; `--jobs 1` runs them one after the other, which keeps the log in order when you are chasing a failure.
 
 | You need | For |
 | --- | --- |

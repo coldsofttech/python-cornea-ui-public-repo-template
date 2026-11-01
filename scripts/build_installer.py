@@ -20,6 +20,7 @@ The installers are written to dist/installer/. See docs/packaging.md for the det
 """
 
 import argparse
+import functools
 import os
 import platform
 import re
@@ -28,8 +29,11 @@ import shutil
 import stat
 import subprocess
 import sys
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypeVar
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "installer"))
@@ -45,6 +49,7 @@ NSIS_DIR = ROOT / "installer" / "windows" / "nsis"
 NFPM_CONFIG = ROOT / "installer" / "linux" / "nfpm.yaml"
 WINDOWS = sys.platform == "win32"
 LINUX = sys.platform.startswith("linux")
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -69,6 +74,17 @@ def load_meta() -> Meta:
 def run(command: list[str], *, env: dict[str, str] | None = None, cwd: Path = ROOT) -> None:
     print("+", " ".join(shlex.quote(part) for part in command), flush=True)
     subprocess.run(command, check=True, cwd=cwd, env=env)
+
+
+def run_parallel(tasks: list[Callable[[], T]], jobs: int) -> list[T]:
+    """Run independent ``tasks`` on up to ``jobs`` threads; results keep the order of ``tasks``.
+
+    The work is in subprocesses (PyInstaller, makensis, nfpm), so threads are enough. The first
+    failure is raised once the others have finished.
+    """
+    with ThreadPoolExecutor(max_workers=max(1, min(jobs, len(tasks) or 1))) as pool:
+        futures = [pool.submit(task) for task in tasks]
+        return [future.result() for future in futures]
 
 
 def author(meta: Meta) -> dict[str, str]:
@@ -103,6 +119,7 @@ def freeze(product: str) -> Path:
 
 
 # ---- Windows: NSIS -----------------------------------------------------------------------------
+@functools.cache
 def make_icon() -> Path:
     """The installer icon: the same PNG the window uses, converted to .ico."""
     from PIL import Image
@@ -125,6 +142,8 @@ def sign(files: list[Path]) -> None:
         command = template.replace("{file}", f'"{file}"')
         print("+", command, flush=True)
         # Windows takes the command line as written; elsewhere it is split like a shell would.
+        # SIGN_COMMAND is set by whoever runs the build (a CI variable), so it is trusted input.
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args  # noqa: E501
         subprocess.run(command if WINDOWS else shlex.split(command), check=True, cwd=ROOT)
 
 
@@ -188,7 +207,7 @@ def normalise_modes(folder: Path) -> None:
             path.chmod(0o644)
 
 
-def package_linux(folder: Path, formats: list[str]) -> list[Path]:
+def package_linux(folder: Path, formats: list[str], jobs: int = 1) -> list[Path]:
     """Build the deb and rpm packages of the command line."""
     normalise_modes(folder)
     OUT.mkdir(parents=True, exist_ok=True)
@@ -216,12 +235,15 @@ def package_linux(folder: Path, formats: list[str]) -> list[Path]:
             "nfpm not found. Install it (version in installer/tools.toml) or set NFPM."
         )
     before = set(OUT.iterdir())
-    for packager in formats:
+
+    def package(packager: str) -> None:
         run(
             [*nfpm, "package", "--config", str(NFPM_CONFIG), "--packager", packager,
              "--target", str(OUT)],
             env=env,
         )  # fmt: skip
+
+    run_parallel([functools.partial(package, packager) for packager in formats], jobs)
     return sorted(set(OUT.iterdir()) - before)
 
 
@@ -244,6 +266,8 @@ def main() -> None:
     parser.add_argument("--smoke", action="store_true", help="run the smoke tests on the builds")
     parser.add_argument("--formats", nargs="+", default=["deb", "rpm"], choices=["deb", "rpm"],
                         help="Linux package formats")  # fmt: skip
+    parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1,
+                        help="builds to run at once (1 = one after the other)")  # fmt: skip
     args = parser.parse_args()
 
     if not (WINDOWS or LINUX):
@@ -255,14 +279,23 @@ def main() -> None:
     built: list[Path] = []
     if "ui" in products and args.build_frontend:
         build_frontend()
-    for product in products:
-        folder = freeze(product)
-        if WINDOWS:
-            built.append(package_exe(product, folder))
-            if product == "cli":
-                built.append(package_zip(folder))
-        else:
-            built.extend(package_linux(folder, args.formats))
+    folders = dict(
+        zip(
+            products,
+            run_parallel([functools.partial(freeze, p) for p in products], args.jobs),
+            strict=True,
+        )
+    )
+    if WINDOWS:
+        make_icon()  # once, before the setups are built side by side
+        tasks: list[Callable[[], Path]] = [
+            functools.partial(package_exe, p, folders[p]) for p in products
+        ]
+        if "cli" in products:
+            tasks.append(functools.partial(package_zip, folders["cli"]))
+        built.extend(run_parallel(tasks, args.jobs))
+    else:
+        built.extend(package_linux(folders["cli"], args.formats, args.jobs))
     if args.smoke:
         smoke(products)
     print("\nBuilt:")

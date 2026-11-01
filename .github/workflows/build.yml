@@ -58,7 +58,12 @@ jobs:
             $dir = Join-Path $env:RUNNER_TEMP "installed-$product"
             $userPath = { [Environment]::GetEnvironmentVariable('Path', 'User') }
 
-            Start-Process -Wait -FilePath $setup.FullName -ArgumentList '/S', '/currentuser', "/D=$dir"
+            $install = Start-Process -Wait -PassThru -FilePath $setup.FullName -ArgumentList '/S', '/currentuser', "/D=$dir"
+            if ($install.ExitCode -ne 0) { throw "the $product setup exited with code $($install.ExitCode)" }
+            if (-not (Test-Path "$dir/$env:CLI_NAME.exe")) {
+              Get-ChildItem $dir -ErrorAction SilentlyContinue | Out-String | Write-Host
+              throw "the $product setup did not install into $dir"
+            }
             & "$dir/$env:CLI_NAME.exe" --version
             if ($LASTEXITCODE -ne 0) { throw "$env:CLI_NAME failed after installing $product" }
             if ($product -eq 'ui') {
@@ -120,6 +125,7 @@ jobs:
           "$CLI_NAME" --version
           "$CLI_NAME" hello Ada
           sudo apt-get remove --yes "$CLI_NAME"
+          hash -r  # the shell remembers where it ran the command from; forget that before checking
           if command -v "$CLI_NAME"; then echo "$CLI_NAME is still installed"; exit 1; fi
           if [ -e "/usr/lib/$CLI_NAME" ]; then echo "files were left behind"; exit 1; fi
       - name: Install, run and remove the rpm (Fedora)
@@ -129,6 +135,7 @@ jobs:
             "$CLI_NAME" --version
             "$CLI_NAME" hello Ada
             dnf remove --assumeyes "$CLI_NAME"
+            hash -r
             if command -v "$CLI_NAME"; then echo "$CLI_NAME is still installed"; exit 1; fi
           '
       - uses: actions/upload-artifact@v7

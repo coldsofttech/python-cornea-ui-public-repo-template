@@ -61,6 +61,9 @@
 Name "${APP_NAME}"
 OutFile "${OUT_FILE}"
 Unicode true
+; The marker is still in $INSTDIR in .onInit unless the user gave /D=folder.
+!define NO_INSTDIR "<default folder>"
+InstallDir "${NO_INSTDIR}"
 SetCompressor /SOLID lzma
 BrandingText "${APP_NAME} ${APP_VERSION}"
 ManifestDPIAware true
@@ -236,7 +239,13 @@ SectionEnd
 
 ; ---- start up (after the sections, whose constants it uses) ------------------------------
 Function .onInit
+  ; MultiUser sets $INSTDIR for the chosen mode and would discard a folder given with /D=, so
+  ; keep that folder (anything but the marker below) and put it back afterwards.
+  StrCpy $R8 $INSTDIR
   !insertmacro MULTIUSER_INIT
+  ${If} $R8 != "${NO_INSTDIR}"
+    StrCpy $INSTDIR $R8
+  ${EndIf}
   ${GetParameters} $R0
   !ifdef HAS_PATH
     ${GetOptions} $R0 "/NOPATH" $R1
