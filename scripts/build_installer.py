@@ -143,9 +143,7 @@ def sign(files: list[Path]) -> None:
         print("+", command, flush=True)
         # Windows takes the command line as written; elsewhere it is split like a shell would.
         # SIGN_COMMAND is set by whoever runs the build (a CI variable), so it is trusted input.
-        subprocess.run(  # nosemgrep
-            command if WINDOWS else shlex.split(command), check=True, cwd=ROOT
-        )
+        subprocess.run(command if WINDOWS else shlex.split(command), check=True, cwd=ROOT)
 
 
 def find_makensis() -> str:
