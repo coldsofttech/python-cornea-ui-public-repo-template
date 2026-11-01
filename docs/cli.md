@@ -7,7 +7,7 @@
 ```bash
 example-cli --help          # installed script
 python -m example_cli       # without relying on the script being on PATH
-uvx --from python-cli-public-repo-template example-cli --help   # one-off, no install
+uvx --from python-cornea-ui-public-repo-template example-cli --help   # one-off, no install
 ```
 
 ## Global options

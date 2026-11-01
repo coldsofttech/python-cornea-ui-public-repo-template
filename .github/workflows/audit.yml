@@ -7,7 +7,7 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch:
   pull_request:
-    paths: [uv.lock]
+    paths: [uv.lock, '**/package-lock.json']
 
 permissions:
   contents: read
@@ -23,3 +23,18 @@ jobs:
         run: uv export --locked --no-emit-project --no-hashes --format requirements-txt -o requirements-audit.txt
       - name: Audit
         run: uvx pip-audit --requirement requirements-audit.txt --no-deps --disable-pip
+
+  npm-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Read project names
+        shell: bash
+        run: python3 installer/projectinfo.py github || python installer/projectinfo.py github
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ${{ env.UI_DIR }}/.nvmrc
+      - name: Audit
+        working-directory: ${{ env.UI_DIR }}
+        run: npm audit --audit-level=high

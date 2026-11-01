@@ -4,6 +4,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -14,8 +16,22 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "chore(deps)"
     groups:
       python:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /src/example_ui/ui
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm:
         patterns: ["*"]

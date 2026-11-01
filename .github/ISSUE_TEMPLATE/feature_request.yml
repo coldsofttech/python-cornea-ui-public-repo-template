@@ -2,6 +2,17 @@ name: Feature request
 description: Suggest an idea or improvement
 labels: [enhancement]
 body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Which part is this for?
+      options:
+        - Command line (example-cli)
+        - API
+        - UI window (example-ui)
+        - Not sure
+    validations:
+      required: true
   - type: textarea
     id: problem
     attributes:
