@@ -49,6 +49,19 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      - id: eslint
+        name: eslint (ui)
+        entry: npm --prefix src/example_ui/ui run lint
+        language: system
+        files: ^src/example_ui/ui/.*\.(js|jsx)$
+        pass_filenames: false
+      - id: prettier
+        name: prettier (ui)
+        entry: npm --prefix src/example_ui/ui run format:check
+        language: system
+        files: ^src/example_ui/ui/
+        exclude: ^src/example_ui/ui/package-lock\.json$
+        pass_filenames: false
       - id: pytest
         name: pytest
         entry: uv run pytest -n auto

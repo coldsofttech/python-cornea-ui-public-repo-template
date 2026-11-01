@@ -2,6 +2,17 @@ name: Bug report
 description: Report something that is not working as expected
 labels: [bug]
 body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Which part is affected?
+      options:
+        - Command line (example-cli)
+        - API
+        - UI window (example-ui)
+        - Not sure
+    validations:
+      required: true
   - type: textarea
     id: what-happened
     attributes:
@@ -23,6 +34,13 @@ body:
     attributes:
       label: Version
       description: Release or commit you are using.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system and version, Python version, and how you installed it. For the UI window, also say if the Microsoft Edge WebView2 runtime is installed.
+      placeholder: |
+        Windows 11, Python 3.13, installed with uv tool install
   - type: textarea
     id: logs
     attributes:

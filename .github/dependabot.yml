@@ -19,3 +19,13 @@ updates:
     groups:
       python:
         patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /src/example_ui/ui
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm:
+        patterns: ["*"]
