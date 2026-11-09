@@ -15,7 +15,7 @@ Products:  cli  the command line (Windows setup, Linux deb and rpm)
            ui   the window together with the command line (Windows setup only)
 
 Usage:  uv sync --group installer
-        uv run python scripts/build_installer.py [cli] [ui] [--build-frontend] [--smoke]
+        uv run python scripts/build_installer.py [cli] [ui] [--sync] [--build-frontend] [--smoke]
 The installers are written to dist/installer/. See docs/packaging.md for the details.
 """
 
@@ -251,6 +251,15 @@ def package_linux(folder: Path, formats: list[str], jobs: int = 1) -> list[Path]
     return sorted(set(OUT.iterdir()) - before)
 
 
+def sync(products: list[str]) -> None:
+    """Install the dependency groups the chosen products need, keeping what is already there."""
+    uv = shutil.which("uv")
+    if uv is None:
+        raise SystemExit("--sync needs uv on PATH.")
+    groups = ["installer", *(["ui", "api"] if "ui" in products else [])]
+    run([uv, "sync", "--inexact", *(arg for g in groups for arg in ("--group", g))])
+
+
 # ---- smoke test --------------------------------------------------------------------------------
 def smoke(products: list[str]) -> None:
     """Start each built executable and check it answers (the test_frozen_*.py integration tests)."""
@@ -263,9 +272,10 @@ def smoke(products: list[str]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument(
-        "products", nargs="*", choices=["cli", "ui"], help="default: all for this OS"
-    )
+    # No choices= here: argparse rejects the empty list that nargs="*" yields when none is given.
+    parser.add_argument("products", nargs="*", metavar="{cli,ui}", help="default: all for this OS")
+    parser.add_argument("--sync", action="store_true",
+                        help="uv sync the groups the products need first")  # fmt: skip
     parser.add_argument("--build-frontend", action="store_true", help="run npm ci && npm run build")
     parser.add_argument("--smoke", action="store_true", help="run the smoke tests on the builds")
     parser.add_argument("--formats", nargs="+", default=["deb", "rpm"], choices=["deb", "rpm"],
@@ -276,10 +286,15 @@ def main() -> None:
 
     if not (WINDOWS or LINUX):
         raise SystemExit("Installers are built on Windows (setup.exe) and Linux (deb, rpm) only.")
+    unknown = sorted(set(args.products) - {"cli", "ui"})
+    if unknown:
+        parser.error(f"unknown product: {', '.join(unknown)} (choose from 'cli', 'ui')")
     products = args.products or (["cli", "ui"] if WINDOWS else ["cli"])
     if "ui" in products and not WINDOWS:
         raise SystemExit("The UI is Windows only.")
 
+    if args.sync:
+        sync(products)
     built: list[Path] = []
     if "ui" in products and args.build_frontend:
         build_frontend()
