@@ -15,6 +15,7 @@
 ;   SOURCE_DIR    the PyInstaller folder to install (build/installer/example-cli)
 ;   OUT_FILE      the installer to write (e.g. dist/example-cli-0.1.0-setup.exe)
 ;   PUBLISHER, URL, ICON_FILE (.ico), LICENSE_FILE   optional
+;   HEADER_IMAGE (.bmp, 150x57), WELCOME_IMAGE (.bmp, 164x314)   optional, from brand/
 ;   USER_DATA_DIR optional: folder with settings and data; the uninstaller asks before removing it
 ;
 ; Silent use: Setup.exe /S [/allusers | /currentuser] [/NOPATH] [/DESKTOP] [/D=C:\folder]
@@ -106,6 +107,15 @@ VIAddVersionKey "LegalCopyright" "${PUBLISHER}"
 !ifdef ICON_FILE
   !define MUI_ICON "${ICON_FILE}"
   !define MUI_UNICON "${ICON_FILE}"
+!endif
+!ifdef HEADER_IMAGE
+  !define MUI_HEADERIMAGE
+  !define MUI_HEADERIMAGE_BITMAP "${HEADER_IMAGE}"
+  !define MUI_HEADERIMAGE_UNBITMAP "${HEADER_IMAGE}"
+!endif
+!ifdef WELCOME_IMAGE
+  !define MUI_WELCOMEFINISHPAGE_BITMAP "${WELCOME_IMAGE}"
+  !define MUI_UNWELCOMEFINISHPAGE_BITMAP "${WELCOME_IMAGE}"
 !endif
 !define MUI_ABORTWARNING
 

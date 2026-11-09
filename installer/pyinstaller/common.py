@@ -6,7 +6,7 @@ project needs no edit here:
 - executable names: the ``[project.scripts]`` keys in ``pyproject.toml`` (the entry scripts are
   generated from their targets)
 - version and title: ``__version__`` and ``TITLE`` in the code
-- icon: ``<ui package>/ui/public/icon.png`` (Pillow converts it to ``.ico``)
+- icon: the ``.ico`` in ``brand/light``
 - description and author: ``[project]`` in ``pyproject.toml``
 """
 
@@ -28,7 +28,7 @@ import projectinfo
 INFO = projectinfo.load()
 REPO_ROOT = INFO.root
 UI_DIR = INFO.ui_dir
-ICON_SOURCE = UI_DIR / "public" / "icon.png"
+ICON_SOURCE = next(iter(sorted((REPO_ROOT / "brand" / "light").glob("*.ico"))), None)
 
 PROJECT = INFO.project
 SCRIPTS: dict[str, str] = INFO.entry_points  # executable name -> "module:function"
@@ -210,7 +210,7 @@ def executable(
         exclude_binaries=True,
         name=script,
         console=console,
-        icon=str(ICON_SOURCE) if WINDOWS else None,
+        icon=str(ICON_SOURCE) if WINDOWS and ICON_SOURCE else None,
         version=_version_info() if WINDOWS else None,
         upx=False,
         # Everything but the executables goes in lib/ (COLLECT follows the EXE).

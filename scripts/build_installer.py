@@ -4,7 +4,7 @@
 Everything comes from the project's own metadata (installer/projectinfo.py), so renaming the
 project needs no edit here: names from [project.scripts] and [tool.installer], version from
 ``__version__``, title from ``TITLE`` in the window's app module, description, author, homepage and
-license from [project] in pyproject.toml, icon from the window's ui/public/icon.png. Tool versions
+license from [project] in pyproject.toml, icon and setup art from brand/. Tool versions
 are pinned in installer/tools.toml.
 
 Signing is off by default. Set SIGN_COMMAND to a command that signs one file, with {file} where
@@ -15,7 +15,7 @@ Products:  cli  the command line (Windows setup, Linux deb and rpm)
            ui   the window together with the command line (Windows setup only)
 
 Usage:  uv sync --group installer
-        uv run python scripts/build_installer.py [cli] [ui] [--build-frontend] [--smoke]
+        uv run python scripts/build_installer.py [cli] [ui] [--sync] [--build-frontend] [--smoke]
 The installers are written to dist/installer/. See docs/packaging.md for the details.
 """
 
@@ -120,15 +120,19 @@ def freeze(product: str) -> Path:
 
 # ---- Windows: NSIS -----------------------------------------------------------------------------
 @functools.cache
-def make_icon() -> Path:
-    """The installer icon: the same PNG the window uses, converted to .ico."""
-    from PIL import Image
+def brand_icon() -> Path:
+    """The installer icon: the .ico in brand/light (the same one the executables carry)."""
+    icons = sorted((ROOT / "brand" / "light").glob("*.ico"))
+    if not icons:
+        raise SystemExit("No .ico found in brand/light.")
+    return icons[0]
 
-    icon = WORK / "icon.ico"
-    icon.parent.mkdir(parents=True, exist_ok=True)
-    with Image.open(UI_DIR / "public" / "icon.png") as image:
-        image.save(icon, sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
-    return icon
+
+def brand_art() -> dict[str, str]:
+    """The setup's header and welcome bitmaps from brand/dark/nsis, when they exist."""
+    art = ROOT / "brand" / "dark" / "nsis"
+    names = {"HEADER_IMAGE": "header.bmp", "WELCOME_IMAGE": "welcome.bmp"}
+    return {key: str(art / name) for key, name in names.items() if (art / name).is_file()}
 
 
 def sign(files: list[Path]) -> None:
@@ -175,7 +179,8 @@ def package_exe(product: str, folder: Path) -> Path:
         "APP_VERSION_NUMERIC": numeric_version(META.version),
         "SOURCE_DIR": str(folder),
         "OUT_FILE": str(setup),
-        "ICON_FILE": str(make_icon()),
+        "ICON_FILE": str(brand_icon()),
+        **brand_art(),
         "LICENSE_FILE": str(ROOT / "LICENSE"),
         "PUBLISHER": author(META).get("name", ""),
         "URL": str(urls.get("Homepage", "")),  # type: ignore[attr-defined]
@@ -246,6 +251,15 @@ def package_linux(folder: Path, formats: list[str], jobs: int = 1) -> list[Path]
     return sorted(set(OUT.iterdir()) - before)
 
 
+def sync(products: list[str]) -> None:
+    """Install the dependency groups the chosen products need, keeping what is already there."""
+    uv = shutil.which("uv")
+    if uv is None:
+        raise SystemExit("--sync needs uv on PATH.")
+    groups = ["installer", *(["ui", "api"] if "ui" in products else [])]
+    run([uv, "sync", "--inexact", *(arg for g in groups for arg in ("--group", g))])
+
+
 # ---- smoke test --------------------------------------------------------------------------------
 def smoke(products: list[str]) -> None:
     """Start each built executable and check it answers (the test_frozen_*.py integration tests)."""
@@ -258,9 +272,10 @@ def smoke(products: list[str]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument(
-        "products", nargs="*", choices=["cli", "ui"], help="default: all for this OS"
-    )
+    # No choices= here: argparse rejects the empty list that nargs="*" yields when none is given.
+    parser.add_argument("products", nargs="*", metavar="{cli,ui}", help="default: all for this OS")
+    parser.add_argument("--sync", action="store_true",
+                        help="uv sync the groups the products need first")  # fmt: skip
     parser.add_argument("--build-frontend", action="store_true", help="run npm ci && npm run build")
     parser.add_argument("--smoke", action="store_true", help="run the smoke tests on the builds")
     parser.add_argument("--formats", nargs="+", default=["deb", "rpm"], choices=["deb", "rpm"],
@@ -271,10 +286,15 @@ def main() -> None:
 
     if not (WINDOWS or LINUX):
         raise SystemExit("Installers are built on Windows (setup.exe) and Linux (deb, rpm) only.")
+    unknown = sorted(set(args.products) - {"cli", "ui"})
+    if unknown:
+        parser.error(f"unknown product: {', '.join(unknown)} (choose from 'cli', 'ui')")
     products = args.products or (["cli", "ui"] if WINDOWS else ["cli"])
     if "ui" in products and not WINDOWS:
         raise SystemExit("The UI is Windows only.")
 
+    if args.sync:
+        sync(products)
     built: list[Path] = []
     if "ui" in products and args.build_frontend:
         build_frontend()
@@ -286,7 +306,7 @@ def main() -> None:
         )
     )
     if WINDOWS:
-        make_icon()  # once, before the setups are built side by side
+        brand_icon()  # fail early, before the setups are built side by side
         tasks: list[Callable[[], Path]] = [
             functools.partial(package_exe, p, folders[p]) for p in products
         ]

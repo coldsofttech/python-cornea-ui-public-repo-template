@@ -1,5 +1,5 @@
 # Versions of the installer tools that are not Python packages, pinned in one place. The build
-# workflows read this file; PyInstaller and Pillow are pinned by uv.lock (the "installer" group).
+# workflows read this file; PyInstaller is pinned by uv.lock (the "installer" group).
 # Dependabot does not see these, so check for new releases when you update the rest.
 
 [tools]
