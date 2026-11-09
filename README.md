@@ -34,7 +34,7 @@ A ready-to-use starting point for public Python tools that come with a command l
 
 1. Click **Use this template** on GitHub and create your new repository.
 2. Run the **Init** workflow from the Actions tab, giving it a short lowercase name (for example `acme`) and a display title, and merge the pull request it opens. This fills in your owner and repository name and renames the example packages and commands to yours. See the [development guide](docs/development.md).
-3. Replace the example React app, API routes, window action and icon with your own.
+3. Replace the example React app, API routes, window action and icon with your own, and the placeholder installer icon and wizard images in `brand/`.
 4. Add your contact details in `CODE_OF_CONDUCT.md`, delete `.github/workflows/init.yml`, and replace this description.
 5. Apply the repository protections by following the [setup guide](docs/repo-setup.md). Before your first release, work through the checklist in the [releasing guide](docs/releasing.md).
 6. Install dependencies and commit checks:

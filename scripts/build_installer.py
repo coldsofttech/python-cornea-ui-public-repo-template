@@ -4,7 +4,7 @@
 Everything comes from the project's own metadata (installer/projectinfo.py), so renaming the
 project needs no edit here: names from [project.scripts] and [tool.installer], version from
 ``__version__``, title from ``TITLE`` in the window's app module, description, author, homepage and
-license from [project] in pyproject.toml, icon from the window's ui/public/icon.png. Tool versions
+license from [project] in pyproject.toml, icon and setup art from brand/. Tool versions
 are pinned in installer/tools.toml.
 
 Signing is off by default. Set SIGN_COMMAND to a command that signs one file, with {file} where
@@ -120,15 +120,19 @@ def freeze(product: str) -> Path:
 
 # ---- Windows: NSIS -----------------------------------------------------------------------------
 @functools.cache
-def make_icon() -> Path:
-    """The installer icon: the same PNG the window uses, converted to .ico."""
-    from PIL import Image
+def brand_icon() -> Path:
+    """The installer icon: the .ico in brand/light (the same one the executables carry)."""
+    icons = sorted((ROOT / "brand" / "light").glob("*.ico"))
+    if not icons:
+        raise SystemExit("No .ico found in brand/light.")
+    return icons[0]
 
-    icon = WORK / "icon.ico"
-    icon.parent.mkdir(parents=True, exist_ok=True)
-    with Image.open(UI_DIR / "public" / "icon.png") as image:
-        image.save(icon, sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
-    return icon
+
+def brand_art() -> dict[str, str]:
+    """The setup's header and welcome bitmaps from brand/dark/nsis, when they exist."""
+    art = ROOT / "brand" / "dark" / "nsis"
+    names = {"HEADER_IMAGE": "header.bmp", "WELCOME_IMAGE": "welcome.bmp"}
+    return {key: str(art / name) for key, name in names.items() if (art / name).is_file()}
 
 
 def sign(files: list[Path]) -> None:
@@ -175,7 +179,8 @@ def package_exe(product: str, folder: Path) -> Path:
         "APP_VERSION_NUMERIC": numeric_version(META.version),
         "SOURCE_DIR": str(folder),
         "OUT_FILE": str(setup),
-        "ICON_FILE": str(make_icon()),
+        "ICON_FILE": str(brand_icon()),
+        **brand_art(),
         "LICENSE_FILE": str(ROOT / "LICENSE"),
         "PUBLISHER": author(META).get("name", ""),
         "URL": str(urls.get("Homepage", "")),  # type: ignore[attr-defined]
@@ -286,7 +291,7 @@ def main() -> None:
         )
     )
     if WINDOWS:
-        make_icon()  # once, before the setups are built side by side
+        brand_icon()  # fail early, before the setups are built side by side
         tasks: list[Callable[[], Path]] = [
             functools.partial(package_exe, p, folders[p]) for p in products
         ]

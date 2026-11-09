@@ -23,7 +23,7 @@ scripts/build_installer.py   runs the steps above
 scripts/update_manifests.py  release notes and the Homebrew and Scoop manifests
 ```
 
-Names, version, icon and description are never repeated: executable names are the `[project.scripts]` keys, the version is `__version__`, the title is `TITLE` in `example_ui/app.py`, the icon is `example_ui/ui/public/icon.png`, and the rest comes from `[project]`. Each of these is defined once and read by the installer files through `installer/projectinfo.py`, which takes the command and window names from `[project.scripts]` and `[tool.installer]` in `pyproject.toml`. Renaming the project (the Init workflow does it) therefore needs no edit in the installer files.
+Names, version, icon and description are never repeated: executable names are the `[project.scripts]` keys, the version is `__version__`, the title is `TITLE` in `example_ui/app.py`, the icon and setup art are in `brand/`, and the rest comes from `[project]`. Each of these is defined once and read by the installer files through `installer/projectinfo.py`, which takes the command and window names from `[project.scripts]` and `[tool.installer]` in `pyproject.toml`. Renaming the project (the Init workflow does it) therefore needs no edit in the installer files.
 
 ## Building locally
 
@@ -38,7 +38,7 @@ Results are in `dist/installer/`; the PyInstaller folders are in `build/installe
 
 | You need | For |
 | --- | --- |
-| `uv sync --group installer` | PyInstaller, Pillow (turns the PNG icon into `.ico`) and the build backend |
+| `uv sync --group installer` | PyInstaller and the build backend |
 | Node (see `.nvmrc`) | the frontend, for the UI (`--build-frontend` runs `npm ci` and `npm run build`) |
 | NSIS (version in `installer/tools.toml`) | Windows setups; `makensis` on `PATH` or in `Program Files (x86)\NSIS` |
 | nfpm (version in `installer/tools.toml`) | Linux packages; set `NFPM` to run it another way, for example `NFPM="uvx nfpm"` |
@@ -52,6 +52,18 @@ Both specs make one-folder builds (no one-file build), with an executable per pr
 - `common.py` holds what they share. The entry scripts are generated from the `[project.scripts]` targets.
 
 The Windows executables carry the icon and file properties (name, version, description), also taken from the project.
+
+## Brand files
+
+The executables and the setup use the artwork in `brand/`. The files shipped are placeholders; replace them with your own, keeping the sizes.
+
+| File | Used for | Size |
+| --- | --- | --- |
+| `brand/light/*.ico` | executables, setup and uninstaller icon | 16 to 256 px |
+| `brand/dark/nsis/header.bmp` | setup header (optional) | 150x57 |
+| `brand/dark/nsis/welcome.bmp` | setup welcome and finish pages (optional) | 164x314 |
+
+The bitmaps must be 24-bit BMP. When a bitmap is missing, NSIS uses its default artwork.
 
 ## Windows setup (NSIS)
 
