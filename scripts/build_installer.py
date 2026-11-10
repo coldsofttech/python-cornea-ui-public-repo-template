@@ -175,6 +175,7 @@ def package_exe(product: str, folder: Path) -> Path:
     urls = META.project.get("urls") or {}
     flags = {
         "APP_NAME": META.cli_title if product == "cli" else META.title,
+        "FOLDER_NAME": META.title,
         "APP_VERSION": META.version,
         "APP_VERSION_NUMERIC": numeric_version(META.version),
         "SOURCE_DIR": str(folder),

@@ -74,7 +74,7 @@ The bitmaps must be 24-bit BMP. When a bitmap is missing, NSIS uses its default 
 
 - **Who it is for:** the default is a per-user install (`%LOCALAPPDATA%\Programs\<name>`). The mode page offers all users (`Program Files`), which asks for administrator rights. An administrator sees one prompt at start.
 - **License:** a license page shows the `LICENSE` file when it is passed in.
-- **Start Menu:** `Programs\<app name>` holds a shortcut and an uninstall shortcut. The CLI's shortcut opens a prompt where `example-cli` works. The UI setup also offers a desktop shortcut.
+- **Start Menu:** both products share one `Programs\<app title>` folder (`FOLDER_NAME`, default `APP_NAME`), each with one shortcut named after it and no uninstall shortcut (both are listed in Settings > Apps). The CLI's shortcut opens a prompt where `example-cli` works. Uninstalling removes only its own shortcut, and the folder once it is empty. The UI setup also offers a desktop shortcut.
 - **PATH (CLI only):** a component, on by default, edits the registry through `path.ps1` and is removed again on uninstall. The UI setup never touches PATH.
 - **Uninstall:** removes only what setup installed, so a folder chosen by hand keeps anything else in it. Settings and data stay unless the user opts in.
 - **Upgrades:** a newer setup with the same GUID replaces the old install and clears the old `lib/` first.
