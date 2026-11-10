@@ -257,5 +257,5 @@ jobs:
       - uses: vedantmgoyal9/winget-releaser@v2
         with:
           identifier: ${{ vars.WINGET_IDENTIFIER }}
-          installers-regex: ${{ vars.WINGET_INSTALLERS_REGEX || '-cli-.*-setup\.exe$' }}
+          installers-regex: ${{ vars.WINGET_INSTALLERS_REGEX || '-cli-.*\.setup\.exe$' }}
           token: ${{ secrets.PACKAGE_MANAGER_TOKEN }}

@@ -6,8 +6,8 @@ How the installers are built. For publishing them, see [releasing](releasing.md)
 
 | Product | Contents | Windows | Linux |
 | --- | --- | --- | --- |
-| CLI | `example-cli` | `example-cli-<version>-setup.exe`, and a portable `…-windows-x64.zip` | `.deb` and `.rpm` |
-| UI | `example-ui` (window) | `example-ui-<version>-setup.exe` | none (the window needs Windows) |
+| CLI | `example-cli` | `example-cli-<version>.setup.exe`, and a portable `…-windows-x64.zip` | `.deb` and `.rpm` |
+| UI | `example-ui` (window) | `example-<version>.setup.exe` | none (the window needs Windows) |
 
 macOS gets no installer. Install the PyPI package, or use Homebrew once it is switched on.
 
@@ -82,8 +82,8 @@ The bitmaps must be 24-bit BMP. When a bitmap is missing, NSIS uses its default 
 Silent use, for scripts and for winget:
 
 ```text
-example-cli-<version>-setup.exe /S [/allusers | /currentuser] [/NOPATH] [/D=C:\folder]
-example-ui-<version>-setup.exe  /S [/allusers | /currentuser] [/DESKTOP] [/D=C:\folder]
+example-cli-<version>.setup.exe /S [/allusers | /currentuser] [/NOPATH] [/D=C:\folder]
+example-<version>.setup.exe     /S [/allusers | /currentuser] [/DESKTOP] [/D=C:\folder]
 uninstall.exe /S [/PURGE]
 ```
 

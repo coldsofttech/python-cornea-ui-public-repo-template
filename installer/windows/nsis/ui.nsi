@@ -1,7 +1,7 @@
 ; NSIS installer for the desktop app (example-ui). Windows only; see common.nsh for the options.
 ;
 ;   makensis /DAPP_NAME="Example App" /DAPP_VERSION=0.1.0 /DSOURCE_DIR=..\..\build\installer\example-ui \
-;            /DOUT_FILE=..\..\dist\example-ui-0.1.0-setup.exe installer\nsis\ui.nsi
+;            /DOUT_FILE=..\..\dist\example-0.1.0.setup.exe installer\nsis\ui.nsi
 ; scripts/build_installer.py does this from the project's own metadata.
 
 ; Stable id of this product: keep it for the life of the project, so a newer setup replaces an

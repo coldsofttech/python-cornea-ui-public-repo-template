@@ -54,7 +54,11 @@ jobs:
         run: |
           foreach ($product in 'cli', 'ui') {
             $name = if ($product -eq 'cli') { $env:CLI_NAME } else { $env:UI_NAME }
-            $setup = Get-ChildItem "dist/installer/$name-*-setup.exe" | Select-Object -First 1
+            # <base>-cli-<version>.setup.exe and <base>-<version>.setup.exe; the digit keeps the second
+            # pattern from matching the first.
+            $base = $env:CLI_NAME -replace '-cli$', ''
+            $pattern = if ($product -eq 'cli') { "$base-cli-*.setup.exe" } else { "$base-[0-9]*.setup.exe" }
+            $setup = Get-ChildItem "dist/installer/$pattern" | Select-Object -First 1
             $dir = Join-Path $env:RUNNER_TEMP "installed-$product"
             $exe = "$dir/$name.exe"
             $userPath = { [Environment]::GetEnvironmentVariable('Path', 'User') }
