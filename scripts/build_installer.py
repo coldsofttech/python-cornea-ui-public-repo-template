@@ -186,7 +186,7 @@ def package_exe(product: str, folder: Path) -> Path:
         "ICON_FILE": str(brand_icon()),
         **brand_art(),
         "LICENSE_FILE": str(ROOT / "LICENSE"),
-        "PUBLISHER": author(META).get("name", ""),
+        "PUBLISHER": INFO.publisher,
         "URL": str(urls.get("Homepage", "")),  # type: ignore[attr-defined]
     }
     command = [find_makensis(), "/V2"]

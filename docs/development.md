@@ -22,7 +22,7 @@ The example names are `example_package` (library), `example_cli` (command line p
 - renames the packages (`acme_package`, `acme_cli`, `acme_api`, `acme_ui`), the commands (`acme-cli`, `acme-ui`), the settings prefix (`ACME_API_`) and the app id, and replaces "Example App" with your title;
 - generates new product GUIDs for the Windows installers, then regenerates `uv.lock`, `docs/cli-reference.md` and `docs/openapi.json`.
 
-The rename is `scripts/init_template.py` (it replaces only those exact patterns, so prose such as "for example" is left alone, and it deletes itself afterwards). The workflows and the installer scripts read names from `pyproject.toml` (`[project.scripts]` and `[tool.installer]`, through `installer/projectinfo.py`), so they need no renaming. If you add a new place that uses an example name, keep it in one of the patterns the script knows.
+The rename is `scripts/init_template.py` (it replaces only those exact patterns, so prose such as "for example" is left alone, and it deletes itself afterwards, along with `TEMPLATE_CHANGELOG.md`, which records the template's own changes and is not meant for your repository). The workflows and the installer scripts read names from `pyproject.toml` (`[project.scripts]` and `[tool.installer]`, through `installer/projectinfo.py`), so they need no renaming. If you add a new place that uses an example name, keep it in one of the patterns the script knows.
 
 What is left for you:
 

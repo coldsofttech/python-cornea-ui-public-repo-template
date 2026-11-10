@@ -65,7 +65,7 @@ jobs:
           BASE: ${{ github.event.repository.default_branch }}
           APP_NAME: ${{ inputs.name }}
         run: |
-          git rm --quiet scripts/init_template.py
+          git rm --quiet scripts/init_template.py TEMPLATE_CHANGELOG.md
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c chore/init-template

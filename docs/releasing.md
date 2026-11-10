@@ -34,6 +34,8 @@ A job that passes its timeout fails instead of hanging. uv and npm caches keep b
 
 Signing is off by default. Without it, Windows shows SmartScreen warnings and may block the unsigned programs; winget still accepts the manifest. Linux packages are not signed.
 
+The `publisher` setting in `[tool.installer]` only fills in Add/Remove Programs and the file properties. The publisher on the UAC prompt comes from the code-signing certificate, so it appears only when the setup is signed.
+
 To turn it on, set the repository variable `SIGN_COMMAND` to a command that signs one file, with `{file}` where the path goes. The build signs the executables first, then each `setup.exe`, so the files inside the installer are signed too. Any provider works, since the command is yours. Examples of what exists, without a recommendation:
 
 - SignPath (free for qualifying open-source projects)
