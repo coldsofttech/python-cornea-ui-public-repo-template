@@ -7,7 +7,7 @@ How the installers are built. For publishing them, see [releasing](releasing.md)
 | Product | Contents | Windows | Linux |
 | --- | --- | --- | --- |
 | CLI | `example-cli` | `example-cli-<version>-setup.exe`, and a portable `…-windows-x64.zip` | `.deb` and `.rpm` |
-| UI | `example-ui` (window) and `example-cli` | `example-ui-<version>-setup.exe` | none (the window needs Windows) |
+| UI | `example-ui` (window) | `example-ui-<version>-setup.exe` | none (the window needs Windows) |
 
 macOS gets no installer. Install the PyPI package, or use Homebrew once it is switched on.
 
@@ -48,7 +48,7 @@ Results are in `dist/installer/`; the PyInstaller folders are in `build/installe
 
 ## PyInstaller
 
-Both specs make one-folder builds (no one-file build), with an executable per program and one shared `lib/`.
+Both specs make one-folder builds (no one-file build), each with its own executable and `lib/`.
 
 - `cli.spec` builds `example-cli` alone, on any OS, with none of the window's libraries (about 37 MB).
 - `ui.spec` (Windows only) builds `example-cli` and `example-ui` side by side (about 69 MB). The window has no console, and the built frontend is frozen into `lib/`.
