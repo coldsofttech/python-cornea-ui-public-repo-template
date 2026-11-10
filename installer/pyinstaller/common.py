@@ -20,7 +20,12 @@ from typing import Any
 from PyInstaller.building.api import EXE, PYZ
 from PyInstaller.building.build_main import Analysis
 from PyInstaller.config import CONF
-from PyInstaller.utils.hooks import collect_all, collect_submodules, copy_metadata
+from PyInstaller.utils.hooks import (
+    collect_data_files,
+    collect_dynamic_libs,
+    collect_submodules,
+    copy_metadata,
+)
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import projectinfo
@@ -58,13 +63,19 @@ class Collected:
         self.hiddenimports: list[str] = []
 
     def package(self, name: str) -> None:
-        """Collect a package whole: code, data files, native libraries and submodules."""
+        """Collect a package's data files, native libraries and submodules.
+
+        Ask for its metadata with ``metadata()`` where something reads it at run time.
+        """
         if importlib.util.find_spec(name) is None:
             return
-        datas, binaries, hidden = collect_all(name)
-        self.datas.extend(datas)
-        self.binaries.extend(binaries)
-        self.hiddenimports.extend(hidden)
+        # Not collect_all(): it also copies every .py file as data, a second copy of code that is
+        # already frozen into the executable.
+        self.datas.extend(
+            item for item in collect_data_files(name) if not str(item[1]).endswith(".dist-info")
+        )
+        self.binaries.extend(collect_dynamic_libs(name))
+        self.hiddenimports.extend(collect_submodules(name))
 
     def metadata(self, *distributions: str) -> None:
         """Keep the package metadata that ``importlib.metadata`` reads at run time."""
