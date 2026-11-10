@@ -13,7 +13,7 @@
 ;   FOLDER_NAME   optional: Start Menu folder shared by the products (default: APP_NAME)
 ;   APP_VERSION   e.g. 0.1.0 (APP_VERSION_NUMERIC "0.1.0.0" is derived if not given)
 ;   SOURCE_DIR    the PyInstaller folder to install (build/installer/example-cli)
-;   OUT_FILE      the installer to write (e.g. dist/example-cli-0.1.0-setup.exe)
+;   OUT_FILE      the installer to write (e.g. dist/example-cli-0.1.0.setup.exe)
 ;   PUBLISHER, URL, ICON_FILE (.ico), LICENSE_FILE   optional
 ;   HEADER_IMAGE (.bmp, 150x57), WELCOME_IMAGE (.bmp, 164x314)   optional, from brand/
 ;   USER_DATA_DIR optional: folder with settings and data; the uninstaller asks before removing it

@@ -169,9 +169,12 @@ def numeric_version(version: str) -> str:
 def package_exe(product: str, folder: Path) -> Path:
     """Build the NSIS setup for one product."""
     OUT.mkdir(parents=True, exist_ok=True)
-    name = META.cli if product == "cli" else META.ui
     sign(sorted(folder.glob("*.exe")))
-    setup = OUT / f"{name}-{META.version}-setup.exe"
+    # Setup names: <name>-cli-<version>.setup.exe (command line) and <name>-<version>.setup.exe
+    # (window), where <name> is the command's [project.scripts] key without its "-cli" suffix.
+    name = META.cli.removesuffix("-cli")
+    stem = f"{name}-cli" if product == "cli" else name
+    setup = OUT / f"{stem}-{META.version}.setup.exe"
     urls = META.project.get("urls") or {}
     flags = {
         "APP_NAME": META.cli_title if product == "cli" else META.title,
