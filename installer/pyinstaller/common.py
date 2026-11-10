@@ -71,8 +71,12 @@ class Collected:
             return
         # Not collect_all(): it also copies every .py file as data, a second copy of code that is
         # already frozen into the executable.
+        # Not __pycache__ either: the CLI and UI builds run side by side, and one can be writing a
+        # .pyc (as a temporary file) in the library folder the other is collecting from.
         self.datas.extend(
-            item for item in collect_data_files(name) if not str(item[1]).endswith(".dist-info")
+            item
+            for item in collect_data_files(name)
+            if not str(item[1]).endswith(".dist-info") and "__pycache__" not in Path(item[0]).parts
         )
         self.binaries.extend(collect_dynamic_libs(name))
         self.hiddenimports.extend(collect_submodules(name))

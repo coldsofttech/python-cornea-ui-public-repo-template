@@ -4,7 +4,6 @@
 ;
 ;   GUID          stable id of the product (upgrades replace an earlier install), "{...}"
 ;   MAIN_EXE      the program the Start Menu shortcut starts, e.g. "example-ui.exe"
-;   EXTRA_EXE     optional second program shipped in the same folder, e.g. "example-cli.exe"
 ;   HAS_PATH      optional: offer to add the install folder to PATH (command line product)
 ;   HAS_DESKTOP   optional: offer a desktop shortcut and "run now" (window product)
 ;
@@ -298,9 +297,6 @@ Section "Uninstall"
   ; Only what setup installed is removed, so a folder chosen by hand keeps anything else in it.
   RMDir /r "$INSTDIR\lib"
   Delete "$INSTDIR\${MAIN_EXE}"
-  !ifdef EXTRA_EXE
-    Delete "$INSTDIR\${EXTRA_EXE}"
-  !endif
   Delete "$INSTDIR\LICENSE.txt"
   Delete "$INSTDIR\path.ps1"
   Delete "$INSTDIR\${UNINSTALLER}"
