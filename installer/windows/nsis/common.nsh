@@ -10,7 +10,8 @@
 ;
 ; scripts/build_installer.py passes the rest, from pyproject.toml and the code, with /D:
 ;
-;   APP_NAME      product name; also the Start Menu folder and the default install folder
+;   APP_NAME      product name; also the shortcut name and the default install folder
+;   FOLDER_NAME   optional: Start Menu folder shared by the products (default: APP_NAME)
 ;   APP_VERSION   e.g. 0.1.0 (APP_VERSION_NUMERIC "0.1.0.0" is derived if not given)
 ;   SOURCE_DIR    the PyInstaller folder to install (build/installer/example-cli)
 ;   OUT_FILE      the installer to write (e.g. dist/example-cli-0.1.0-setup.exe)
@@ -42,6 +43,9 @@
 !endif
 !ifndef APP_VERSION_NUMERIC
   !define APP_VERSION_NUMERIC "${APP_VERSION}.0"
+!endif
+!ifndef FOLDER_NAME
+  !define FOLDER_NAME "${APP_NAME}"
 !endif
 !ifndef PUBLISHER
   !define PUBLISHER "${APP_NAME}"
@@ -172,16 +176,16 @@ Section "!${APP_NAME}" SecMain
 
   WriteUninstaller "$INSTDIR\${UNINSTALLER}"
 
-  ; Start Menu > Programs > <app name>
-  CreateDirectory "$SMPROGRAMS\${APP_NAME}"
+  ; Start Menu > Programs > <folder name>, shared by the products. No uninstall shortcut: both
+  ; products are listed in Settings > Apps.
+  CreateDirectory "$SMPROGRAMS\${FOLDER_NAME}"
   !ifdef HAS_PATH
     ; A prompt where the command already works, even if it was not added to PATH.
-    CreateShortcut "$SMPROGRAMS\${APP_NAME}\${APP_NAME} prompt.lnk" "$SYSDIR\cmd.exe" \
+    CreateShortcut "$SMPROGRAMS\${FOLDER_NAME}\${APP_NAME}.lnk" "$SYSDIR\cmd.exe" \
       '/K set "PATH=$INSTDIR;%PATH%"' "$INSTDIR\${MAIN_EXE}" 0
   !else
-    CreateShortcut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${MAIN_EXE}"
+    CreateShortcut "$SMPROGRAMS\${FOLDER_NAME}\${APP_NAME}.lnk" "$INSTDIR\${MAIN_EXE}"
   !endif
-  CreateShortcut "$SMPROGRAMS\${APP_NAME}\Uninstall ${APP_NAME}.lnk" "$INSTDIR\${UNINSTALLER}"
 
   ; Where it is installed (also tells a later setup, and the uninstaller, which mode this was).
   WriteRegStr SHCTX "Software\${APP_NAME}" "InstallLocation" "$INSTDIR"
@@ -302,7 +306,12 @@ Section "Uninstall"
   Delete "$INSTDIR\${UNINSTALLER}"
   RMDir "$INSTDIR"
 
-  RMDir /r "$SMPROGRAMS\${APP_NAME}"
+  ; Only this product's shortcuts: the folder is shared, so no RMDir /r. RMDir leaves it while the
+  ; other product's shortcut is in it. The uninstall shortcut is from older setups.
+  Delete "$SMPROGRAMS\${FOLDER_NAME}\${APP_NAME}.lnk"
+  Delete "$SMPROGRAMS\${FOLDER_NAME}\${APP_NAME} prompt.lnk"
+  Delete "$SMPROGRAMS\${FOLDER_NAME}\Uninstall ${APP_NAME}.lnk"
+  RMDir "$SMPROGRAMS\${FOLDER_NAME}"
   !ifdef HAS_DESKTOP
     Delete "$DESKTOP\${APP_NAME}.lnk"
   !endif
