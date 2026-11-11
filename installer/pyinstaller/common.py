@@ -7,7 +7,7 @@ project needs no edit here:
   generated from their targets)
 - version and title: ``__version__`` and ``TITLE`` in the code
 - icon: the ``.ico`` in ``brand/light``
-- description and author: ``[project]`` in ``pyproject.toml``
+- description: ``[project]`` in ``pyproject.toml``; publisher: ``[tool.installer]`` (or the author)
 """
 
 import importlib.util
@@ -163,14 +163,14 @@ def _version_info() -> Any:
 
     numbers = [int(n) for n in re.findall(r"\d+", __version__)[:4]]
     version = tuple(numbers + [0] * (4 - len(numbers)))
-    author = (PROJECT.get("authors") or [{}])[0].get("name", "")
+    publisher = INFO.publisher
     strings = {
-        "CompanyName": author,
+        "CompanyName": publisher,
         "FileDescription": PROJECT.get("description", TITLE),
         "FileVersion": __version__,
         "ProductName": TITLE,
         "ProductVersion": __version__,
-        "LegalCopyright": f"MIT License. {author}".strip(),
+        "LegalCopyright": f"MIT License. {publisher}".strip(),
     }
     return VSVersionInfo(
         ffi=FixedFileInfo(
