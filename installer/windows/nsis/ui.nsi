@@ -8,6 +8,7 @@
 ; older install. Generate a new one for your project (python -c "import uuid; print(uuid.uuid4())").
 !define GUID "{B84C2A90-5D13-47E6-A0F2-93C1E6D84B57}"
 !define MAIN_EXE "example-ui.exe"
+!define INSTALL_SUBDIR "UI"
 !define HAS_DESKTOP
 
 !include "common.nsh"

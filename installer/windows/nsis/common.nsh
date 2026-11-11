@@ -6,15 +6,17 @@
 ;   MAIN_EXE      the program the Start Menu shortcut starts, e.g. "example-ui.exe"
 ;   HAS_PATH      optional: offer to add the install folder to PATH (command line product)
 ;   HAS_DESKTOP   optional: offer a desktop shortcut and "run now" (window product)
+;   INSTALL_SUBDIR  "CLI" or "UI": the product's folder under <PUBLISHER>\<FOLDER_NAME>, so the
+;                 two products never share files
 ;
 ; scripts/build_installer.py passes the rest, from pyproject.toml and the code, with /D:
 ;
-;   APP_NAME      product name; also the shortcut name and the default install folder
-;   FOLDER_NAME   optional: Start Menu folder shared by the products (default: APP_NAME)
+;   APP_NAME      product name; also the shortcut name
+;   FOLDER_NAME   optional: Start Menu folder and install folder shared by the products (default: APP_NAME)
 ;   APP_VERSION   e.g. 0.1.0 (APP_VERSION_NUMERIC "0.1.0.0" is derived if not given)
 ;   SOURCE_DIR    the PyInstaller folder to install (build/installer/example-cli)
 ;   OUT_FILE      the installer to write (e.g. dist/example-cli-0.1.0.setup.exe)
-;   PUBLISHER, URL, ICON_FILE (.ico), LICENSE_FILE   optional
+;   PUBLISHER (default: APP_NAME; also the install folder's parent), URL, ICON_FILE (.ico), LICENSE_FILE   optional
 ;   HEADER_IMAGE (.bmp, 150x57), WELCOME_IMAGE (.bmp, 164x314)   optional, from brand/
 ;   USER_DATA_DIR optional: folder with settings and data; the uninstaller asks before removing it
 ;
@@ -27,6 +29,9 @@
 !endif
 !ifndef MAIN_EXE
   !error "Define MAIN_EXE in the product file."
+!endif
+!ifndef INSTALL_SUBDIR
+  !error "Define INSTALL_SUBDIR in the product file."
 !endif
 !ifndef APP_NAME
   !error "Pass /DAPP_NAME=... (scripts/build_installer.py does)."
@@ -90,7 +95,7 @@ VIAddVersionKey "LegalCopyright" "${PUBLISHER}"
 !define MULTIUSER_INSTALLMODE_ALLOW_ELEVATION
 !define MULTIUSER_INSTALLMODE_DEFAULT_CURRENTUSER
 !define MULTIUSER_USE_PROGRAMFILES64
-!define MULTIUSER_INSTALLMODE_INSTDIR "${APP_NAME}"
+!define MULTIUSER_INSTALLMODE_INSTDIR "${PUBLISHER}\${FOLDER_NAME}\${INSTALL_SUBDIR}"
 !define MULTIUSER_INSTALLMODE_INSTDIR_REGISTRY_KEY "Software\${APP_NAME}"
 !define MULTIUSER_INSTALLMODE_INSTDIR_REGISTRY_VALUENAME "InstallLocation"
 !define MULTIUSER_INSTALLMODE_DEFAULT_REGISTRY_KEY "Software\${APP_NAME}"
@@ -106,6 +111,7 @@ VIAddVersionKey "LegalCopyright" "${PUBLISHER}"
 !insertmacro GetOptions
 !insertmacro un.GetParameters
 !insertmacro un.GetOptions
+!insertmacro un.GetParent
 
 !ifdef ICON_FILE
   !define MUI_ICON "${ICON_FILE}"
@@ -301,6 +307,17 @@ Section "Uninstall"
   Delete "$INSTDIR\path.ps1"
   Delete "$INSTDIR\${UNINSTALLER}"
   RMDir "$INSTDIR"
+  ; The folders above it are setup's own only in the default location (not after /D= or a custom
+  ; folder). RMDir leaves them while the other product, or anything else, is in them.
+  StrCpy $0 "\${PUBLISHER}\${FOLDER_NAME}\${INSTALL_SUBDIR}"
+  StrLen $1 $0
+  StrCpy $2 $INSTDIR "" -$1
+  ${If} $2 == $0
+    ${un.GetParent} "$INSTDIR" $3
+    RMDir "$3"
+    ${un.GetParent} "$3" $3
+    RMDir "$3"
+  ${EndIf}
 
   ; Only this product's shortcuts: the folder is shared, so no RMDir /r. RMDir leaves it while the
   ; other product's shortcut is in it. The uninstall shortcut is from older setups.

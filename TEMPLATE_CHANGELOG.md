@@ -10,6 +10,7 @@ Changes to the template itself. This file is removed when you initialise a repos
 
 ### Changed
 
+- The command line and the window install into separate folders (`<publisher>\<name>\CLI` and `\UI`), so uninstalling one no longer affects the other.
 - Smaller installers: dev tools and unneeded package metadata are left out.
 - Setups are named `<name>-cli-<version>.setup.exe` and `<name>-<version>.setup.exe`.
 - The window is shipped only in the UI installer.
