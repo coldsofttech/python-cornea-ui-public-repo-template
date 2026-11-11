@@ -9,8 +9,8 @@ import pytest
 import example_package
 from tests.frozen import locate, skip_if_blocked
 
-# cli.spec builds the command line alone; ui.spec builds it again beside the window.
-FOLDERS = ["example-cli", "example-ui"]
+# cli.spec builds the command line; ui.spec builds the window only.
+FOLDERS = ["example-cli"]
 
 
 def _run(exe: Path, *arguments: str) -> subprocess.CompletedProcess[str]:

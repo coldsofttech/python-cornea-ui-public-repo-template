@@ -71,8 +71,10 @@ installer = [
 # Read by installer/projectinfo.py, so the installer scripts and the workflows need no names of
 # their own. cli is the [project.scripts] key of the command line. The window is not published, so
 # it has no script: ui is its executable name and ui-target the function it runs. api is the API
-# package.
+# package. publisher is optional (the first author when omitted): the name shown in Add/Remove
+# Programs and the file properties.
 [tool.installer]
+publisher = "Example App"
 cli = "example-cli"
 ui = "example-ui"
 ui-target = "example_ui.__main__:main"

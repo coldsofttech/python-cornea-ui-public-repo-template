@@ -34,6 +34,8 @@ A job that passes its timeout fails instead of hanging. uv and npm caches keep b
 
 Signing is off by default. Without it, Windows shows SmartScreen warnings and may block the unsigned programs; winget still accepts the manifest. Linux packages are not signed.
 
+The `publisher` setting in `[tool.installer]` only fills in Add/Remove Programs and the file properties. The publisher on the UAC prompt comes from the code-signing certificate, so it appears only when the setup is signed.
+
 To turn it on, set the repository variable `SIGN_COMMAND` to a command that signs one file, with `{file}` where the path goes. The build signs the executables first, then each `setup.exe`, so the files inside the installer are signed too. Any provider works, since the command is yours. Examples of what exists, without a recommendation:
 
 - SignPath (free for qualifying open-source projects)
@@ -69,7 +71,7 @@ The workflow creates `<owner>/scoop-bucket` if needed and opens a pull request t
 winget updates an existing package, so the first submission is manual:
 
 1. Publish a release, so the setup is at a stable URL.
-2. Run `wingetcreate new <url of the command line setup.exe>` (or `winget install wingetcreate` first) and answer the prompts. Choose the installer type `nullsoft`, silent switches `/S`, and the package identifier you will put in `WINGET_IDENTIFIER`.
+2. Run `wingetcreate new <url of the command line setup.exe>` (`<name>-cli-<version>.setup.exe`) (or `winget install wingetcreate` first) and answer the prompts. Choose the installer type `nullsoft`, silent switches `/S`, and the package identifier you will put in `WINGET_IDENTIFIER`.
 3. Submit it. Microsoft's validation and review take from a few hours to several days; fix anything the bot reports on the pull request.
 4. After it is merged, set `PUBLISH_WINGET=true`. From then on each release opens an update pull request.
 
@@ -84,7 +86,7 @@ What to tell your users, once the channels are on:
 | Homebrew | `brew install <owner>/tap/<name>` | `brew uninstall <name>` |
 | Debian, Ubuntu | `sudo apt install ./<name>_<version>_amd64.deb` | `sudo apt remove <name>` |
 | Fedora, RHEL | `sudo dnf install ./<name>-<version>-1.x86_64.rpm` | `sudo dnf remove <name>` |
-| Windows setup | run `<name>-<version>-setup.exe` from the release page | Settings > Apps |
+| Windows setup | run `<name>-<version>.setup.exe` (window) or `<name>-cli-<version>.setup.exe` (command line) from the release page | Settings > Apps |
 | PyPI (command line only) | `uv tool install <project>` or `pipx install <project>` | `uv tool uninstall <project>` |
 
 ## Before the first release

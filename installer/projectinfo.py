@@ -10,7 +10,8 @@ What is read:
 - ``[tool.installer]`` gives the command's ``[project.scripts]`` key (``cli``), the window's
   executable name and function (``ui`` and ``ui-target``, since the window is not published and has
   no script) and the API package (``api``); the command-line and window packages come from the
-  targets of the two entry points
+  targets of the two entry points; the optional ``publisher`` is the name shown in Add/Remove
+  Programs and the file properties (the first ``[project] authors`` name when it is not set)
 - ``[tool.hatch.version] path`` gives the core package, and ``__version__`` is read from that file
 - the window's title is ``TITLE`` in ``<ui package>/app.py``
 - the frontend lives in ``src/<ui package>/ui``
@@ -44,6 +45,7 @@ class ProjectInfo:
     api_package: str
     version: str
     title: str
+    publisher: str  # shown in Add/Remove Programs and the file properties
 
     @property
     def ui_dir(self) -> Path:
@@ -107,6 +109,7 @@ def load(root: Path = ROOT) -> ProjectInfo:
         api_package=api,
         version=_read(version_file, r'^__version__\s*=\s*"([^"]+)"', "__version__"),
         title=_read(root / "src" / ui_package / "app.py", r'^TITLE\s*=\s*"([^"]+)"', "TITLE"),
+        publisher=settings.get("publisher") or (project.get("authors") or [{}])[0].get("name", ""),
     )
 
 

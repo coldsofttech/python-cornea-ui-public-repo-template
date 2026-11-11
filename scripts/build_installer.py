@@ -169,12 +169,16 @@ def numeric_version(version: str) -> str:
 def package_exe(product: str, folder: Path) -> Path:
     """Build the NSIS setup for one product."""
     OUT.mkdir(parents=True, exist_ok=True)
-    name = META.cli if product == "cli" else META.ui
     sign(sorted(folder.glob("*.exe")))
-    setup = OUT / f"{name}-{META.version}-setup.exe"
+    # Setup names: <name>-cli-<version>.setup.exe (command line) and <name>-<version>.setup.exe
+    # (window), where <name> is the command's [project.scripts] key without its "-cli" suffix.
+    name = META.cli.removesuffix("-cli")
+    stem = f"{name}-cli" if product == "cli" else name
+    setup = OUT / f"{stem}-{META.version}.setup.exe"
     urls = META.project.get("urls") or {}
     flags = {
         "APP_NAME": META.cli_title if product == "cli" else META.title,
+        "FOLDER_NAME": META.title,
         "APP_VERSION": META.version,
         "APP_VERSION_NUMERIC": numeric_version(META.version),
         "SOURCE_DIR": str(folder),
@@ -182,7 +186,7 @@ def package_exe(product: str, folder: Path) -> Path:
         "ICON_FILE": str(brand_icon()),
         **brand_art(),
         "LICENSE_FILE": str(ROOT / "LICENSE"),
-        "PUBLISHER": author(META).get("name", ""),
+        "PUBLISHER": INFO.publisher,
         "URL": str(urls.get("Homepage", "")),  # type: ignore[attr-defined]
     }
     command = [find_makensis(), "/V2"]

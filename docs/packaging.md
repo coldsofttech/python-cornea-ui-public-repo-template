@@ -6,8 +6,8 @@ How the installers are built. For publishing them, see [releasing](releasing.md)
 
 | Product | Contents | Windows | Linux |
 | --- | --- | --- | --- |
-| CLI | `example-cli` | `example-cli-<version>-setup.exe`, and a portable `…-windows-x64.zip` | `.deb` and `.rpm` |
-| UI | `example-ui` (window) and `example-cli` | `example-ui-<version>-setup.exe` | none (the window needs Windows) |
+| CLI | `example-cli` | `example-cli-<version>.setup.exe`, and a portable `…-windows-x64.zip` | `.deb` and `.rpm` |
+| UI | `example-ui` (window) | `example-<version>.setup.exe` | none (the window needs Windows) |
 
 macOS gets no installer. Install the PyPI package, or use Homebrew once it is switched on.
 
@@ -48,7 +48,7 @@ Results are in `dist/installer/`; the PyInstaller folders are in `build/installe
 
 ## PyInstaller
 
-Both specs make one-folder builds (no one-file build), with an executable per program and one shared `lib/`.
+Both specs make one-folder builds (no one-file build), each with its own executable and `lib/`.
 
 - `cli.spec` builds `example-cli` alone, on any OS, with none of the window's libraries (about 37 MB).
 - `ui.spec` (Windows only) builds `example-cli` and `example-ui` side by side (about 69 MB). The window has no console, and the built frontend is frozen into `lib/`.
@@ -72,9 +72,10 @@ The bitmaps must be 24-bit BMP. When a bitmap is missing, NSIS uses its default 
 
 `common.nsh` holds the behavior and `cli.nsi` and `ui.nsi` set what differs. Settings arrive as `/D` flags from `build_installer.py`.
 
-- **Who it is for:** the default is a per-user install (`%LOCALAPPDATA%\Programs\<name>`). The mode page offers all users (`Program Files`), which asks for administrator rights. An administrator sees one prompt at start.
+- **Who it is for:** the default is a per-user install (`%LOCALAPPDATA%\Programs`). The mode page offers all users (`Program Files`), which asks for administrator rights. An administrator sees one prompt at start.
+- **Install folder:** `<publisher>\<app title>\CLI` for the command line and `<publisher>\<app title>\UI` for the window (`PUBLISHER`, `FOLDER_NAME` and `INSTALL_SUBDIR`), so uninstalling one never deletes files the other needs. Uninstalling also removes the app title and publisher folders once they are empty, unless the folder was chosen by hand (the folder page or `/D=`).
 - **License:** a license page shows the `LICENSE` file when it is passed in.
-- **Start Menu:** `Programs\<app name>` holds a shortcut and an uninstall shortcut. The CLI's shortcut opens a prompt where `example-cli` works. The UI setup also offers a desktop shortcut.
+- **Start Menu:** both products share one `Programs\<app title>` folder (`FOLDER_NAME`, default `APP_NAME`), each with one shortcut named after it and no uninstall shortcut (both are listed in Settings > Apps). The CLI's shortcut opens a prompt where `example-cli` works. Uninstalling removes only its own shortcut, and the folder once it is empty. The UI setup also offers a desktop shortcut.
 - **PATH (CLI only):** a component, on by default, edits the registry through `path.ps1` and is removed again on uninstall. The UI setup never touches PATH.
 - **Uninstall:** removes only what setup installed, so a folder chosen by hand keeps anything else in it. Settings and data stay unless the user opts in.
 - **Upgrades:** a newer setup with the same GUID replaces the old install and clears the old `lib/` first.
@@ -82,8 +83,8 @@ The bitmaps must be 24-bit BMP. When a bitmap is missing, NSIS uses its default 
 Silent use, for scripts and for winget:
 
 ```text
-example-cli-<version>-setup.exe /S [/allusers | /currentuser] [/NOPATH] [/D=C:\folder]
-example-ui-<version>-setup.exe  /S [/allusers | /currentuser] [/DESKTOP] [/D=C:\folder]
+example-cli-<version>.setup.exe /S [/allusers | /currentuser] [/NOPATH] [/D=C:\folder]
+example-<version>.setup.exe     /S [/allusers | /currentuser] [/DESKTOP] [/D=C:\folder]
 uninstall.exe /S [/PURGE]
 ```
 

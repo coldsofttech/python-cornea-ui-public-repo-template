@@ -26,7 +26,7 @@ SKIP_DIRS = {
 }  # fmt: skip
 # Not renamed: the lock file is regenerated, the license is not ours to change, and the workflows
 # read their names from pyproject.toml.
-SKIP_FILES = {"uv.lock", "LICENSE"}
+SKIP_FILES = {"uv.lock", "LICENSE", "TEMPLATE_CHANGELOG.md"}
 SKIP_PREFIXES = (".github/workflows/", "scripts/init_template.py")
 GUID = re.compile(r'(!define GUID ")\{[0-9A-Fa-f-]{36}\}(")')
 
@@ -39,10 +39,11 @@ def valid_title(title: str) -> bool:
     return bool(title.strip()) and len(title) <= 60 and not re.search(r'["\\\n\r]', title)
 
 
-def replacements(name: str, title: str) -> list[tuple[re.Pattern[str], str]]:
+def replacements(name: str, title: str, publisher: str) -> list[tuple[re.Pattern[str], str]]:
     """Ordered patterns: the specific ones first."""
     return [
         (re.compile(r"com\.example\.app"), f"com.{name}.app"),
+        (re.compile(r'^publisher = "Example App"', re.MULTILINE), f'publisher = "{publisher}"'),
         (re.compile(r"\bExample App\b"), title),
         (re.compile(r"EXAMPLE_"), f"{name.upper()}_"),
         (re.compile(r"example_"), f"{name}_"),
@@ -63,9 +64,9 @@ def project_files(root: Path) -> list[Path]:
     return files
 
 
-def rewrite(root: Path, name: str, title: str, *, dry_run: bool) -> list[str]:
+def rewrite(root: Path, name: str, title: str, publisher: str, *, dry_run: bool) -> list[str]:
     """Replace the names in file contents. Returns the files that changed."""
-    patterns = replacements(name, title)
+    patterns = replacements(name, title, publisher)
     changed = []
     for path in project_files(root):
         try:
@@ -120,6 +121,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--name", required=True, help="lowercase letters and digits, e.g. acme")
     parser.add_argument("--title", required=True, help='display name, e.g. "Acme Studio"')
+    parser.add_argument(
+        "--publisher",
+        help="publisher shown in Add/Remove Programs and file properties (default: --title)",
+    )
     parser.add_argument("--root", type=Path, default=ROOT, help="repository to change")
     parser.add_argument("--dry-run", action="store_true", help="only list what would change")
     args = parser.parse_args()
@@ -130,10 +135,13 @@ def main() -> None:
         )
     if not valid_title(args.title):
         raise SystemExit("--title must be 1 to 60 characters, without quotes or backslashes.")
+    publisher = args.publisher or args.title
+    if not valid_title(publisher):
+        raise SystemExit("--publisher must be 1 to 60 characters, without quotes or backslashes.")
     if not (args.root / "src" / "example_package").is_dir():
         raise SystemExit("src/example_package not found: this repository is already initialised.")
 
-    changed = rewrite(args.root, args.name, args.title, dry_run=args.dry_run)
+    changed = rewrite(args.root, args.name, args.title, publisher, dry_run=args.dry_run)
     renamed = rename_paths(args.root, args.name, dry_run=args.dry_run)
     sys.stdout.write(f"{len(changed)} files changed, {len(renamed)} paths renamed.\n")
     for line in renamed:
