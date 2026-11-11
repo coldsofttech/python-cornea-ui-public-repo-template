@@ -8,6 +8,7 @@
 ; older install. Generate a new one for your project (python -c "import uuid; print(uuid.uuid4())").
 !define GUID "{6F1D5B2E-3A7C-4E19-9B64-0C2E8A5D7F31}"
 !define MAIN_EXE "example-cli.exe"
+!define INSTALL_SUBDIR "CLI"
 !define HAS_PATH
 
 !include "common.nsh"
