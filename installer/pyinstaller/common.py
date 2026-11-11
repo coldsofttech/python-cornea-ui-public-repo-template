@@ -24,7 +24,6 @@ from PyInstaller.utils.hooks import (
     collect_data_files,
     collect_dynamic_libs,
     collect_submodules,
-    copy_metadata,
 )
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -41,7 +40,20 @@ CLI_SCRIPT, UI_SCRIPT = INFO.cli_script, INFO.ui_script
 WINDOWS = sys.platform == "win32"
 
 # Not part of any program.
-EXCLUDES = ["tkinter", "pytest"]
+EXCLUDES = [
+    "tkinter",
+    "pytest",
+    "_pytest",
+    "mypy",
+    "mypyc",
+    "hypothesis",
+    "setuptools",
+    "pkg_resources",
+]
+# The only .dist-info folders the executables keep. keyring finds its Windows backend in its own
+# entry points; the project's own metadata is read for its version. Libraries that read their own
+# metadata (websockets, click, Cornea diagnostics) cope without it.
+KEEP_DIST_INFO = {"keyring", PROJECT["name"]}
 # The command line imports neither the API nor the window.
 CLI_EXCLUDES = [
     *EXCLUDES,
@@ -65,7 +77,7 @@ class Collected:
     def package(self, name: str) -> None:
         """Collect a package's data files, native libraries and submodules.
 
-        Ask for its metadata with ``metadata()`` where something reads it at run time.
+        Its ``.dist-info`` folder is left out; ``KEEP_DIST_INFO`` lists the exceptions.
         """
         if importlib.util.find_spec(name) is None:
             return
@@ -81,16 +93,21 @@ class Collected:
         self.binaries.extend(collect_dynamic_libs(name))
         self.hiddenimports.extend(collect_submodules(name))
 
-    def metadata(self, *distributions: str) -> None:
-        """Keep the package metadata that ``importlib.metadata`` reads at run time."""
-        for distribution in distributions:
-            self.datas.extend(copy_metadata(distribution))
+
+def _dist_info_wanted(dest: str) -> bool:
+    """Whether a collected file is outside every ``.dist-info`` folder, or inside a kept one."""
+    folder = Path(dest).parts[0] if Path(dest).parts else ""
+    if not folder.endswith(".dist-info"):
+        return True
+    name = folder.removesuffix(".dist-info").rsplit("-", 1)[0]
+    return name.lower().replace("-", "_").replace(".", "_") in {
+        keep.lower().replace("-", "_").replace(".", "_") for keep in KEEP_DIST_INFO
+    }
 
 
 def cli_dependencies() -> Collected:
     """What the command line needs. The window's build includes these too."""
     collected = Collected()
-    collected.metadata(PROJECT["name"])
     collected.hiddenimports.extend(collect_submodules(INFO.core_package))
     collected.hiddenimports.extend(collect_submodules(INFO.cli_package))
     # rich lazily imports a Unicode-version-specific submodule that static analysis cannot see.
@@ -110,15 +127,6 @@ def ui_dependencies() -> Collected:
     if not (UI_DIR / "dist" / "index.html").is_file():
         raise SystemExit(f"Build the frontend first: npm ci && npm run build in {UI_DIR}")
     collected = Collected()
-    collected.metadata(
-        "cornea-shell",
-        "pywebview",
-        "fastapi",
-        "starlette",
-        "uvicorn",
-        "pydantic",
-        "pydantic-settings",
-    )
     for package in (
         "cornea", "webview", "clr_loader", "pythonnet", "proxy_tools", "bottle", "uvicorn",
         "fastapi", "starlette", "pydantic", "pydantic_settings", "pydantic_core", "anyio", "h11",
@@ -218,6 +226,8 @@ def executable(
         excludes=list(excludes),
         noarchive=False,
     )
+    # PyInstaller's own hooks add a .dist-info folder for every package they collect.
+    analysis.datas[:] = [item for item in analysis.datas if _dist_info_wanted(item[0])]
     exe = EXE(
         PYZ(analysis.pure),
         analysis.scripts,

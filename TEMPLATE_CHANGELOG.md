@@ -10,6 +10,7 @@ Changes to the template itself. This file is removed when you initialise a repos
 
 ### Changed
 
+- Smaller installers: dev tools and unneeded package metadata are left out.
 - Setups are named `<name>-cli-<version>.setup.exe` and `<name>-<version>.setup.exe`.
 - The window is shipped only in the UI installer.
 - Both installers share one Start Menu folder, with one shortcut per product.
