@@ -4,6 +4,8 @@ Changes to the template itself. This file is removed when you initialise a repos
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-11
+
 ### Added
 
 - Optional `publisher` setting for the name shown in Add/Remove Programs and the file properties, and an optional `--publisher` for the init script.
@@ -26,13 +28,13 @@ Changes to the template itself. This file is removed when you initialise a repos
 
 - Claude Code configuration and instructions.
 
-## 2026-11-08
+## [0.1.1] - 2026-11-08
 
 ### Changed
 
 - Updated the `oasdiff` GitHub Action used to check API changes.
 
-## 2026-11-01
+## [0.1.0] - 2026-11-01
 
 ### Added
 
