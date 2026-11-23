@@ -71,6 +71,15 @@ repos:
         name: ruff format (ui)
         files: ^packages/ui/
       - id: ruff-check
+        alias: ruff-check-docker
+        name: ruff check (docker)
+        args: [--fix]
+        files: ^packages/docker/
+      - id: ruff-format
+        alias: ruff-format-docker
+        name: ruff format (docker)
+        files: ^packages/docker/
+      - id: ruff-check
         alias: ruff-check-repo
         name: ruff check (repo)
         args: [--fix]
@@ -108,6 +117,12 @@ repos:
         entry: uv run mypy packages/ui/src
         language: system
         files: ^packages/ui/.*\.py$
+        pass_filenames: false
+      - id: mypy-docker
+        name: mypy (docker)
+        entry: uv run --directory packages/docker mypy
+        language: system
+        files: ^packages/docker/.*\.py$
         pass_filenames: false
       - id: eslint
         name: eslint (ui)

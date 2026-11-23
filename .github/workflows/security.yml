@@ -4,7 +4,7 @@ name: Security
 # repository's Security tab (Code scanning) next to CodeQL, and the jobs fail when they find a problem.
 # These jobs are not part of the required `ci` check, so a new rule does not block unrelated pull
 # requests. The weekly run catches vulnerabilities published after a merge.
-# Calls one workflow per package (security-core, security-cli, security-api, security-ui) and one for the rest of the repository (security-repo). On pull requests,
+# Calls one workflow per package (security-core, security-cli, security-api, security-ui, security-docker) and one for the rest of the repository (security-repo). On pull requests,
 # `changes` limits the run to the parts of the repository the change can affect; pushes to main,
 # the weekly run and manual runs scan everything.
 on:
@@ -60,6 +60,15 @@ jobs:
     needs: changes
     if: needs.changes.outputs.ui == 'true'
     uses: ./.github/workflows/security-ui.yml
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+  docker:
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
+    uses: ./.github/workflows/security-docker.yml
     permissions:
       contents: read
       security-events: write

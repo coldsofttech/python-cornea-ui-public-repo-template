@@ -4,7 +4,7 @@ name: Changes
 # run the workflows that can be affected. Anything that is not a pull request (a push to main, the
 # weekly run, a manual run) reports every part as changed. Called by ci.yml and security.yml.
 #
-# Dependencies: cli and api use core; ui uses core and api;
+# Dependencies: cli and api use core; ui uses core and api; the Docker image holds core and cli;
 # the installer is built from the cli and ui and needs their build artifacts, so a change that
 # reaches the installer also runs the cli and ui jobs. A change under .github runs everything.
 on:
@@ -18,6 +18,8 @@ on:
         value: ${{ jobs.changes.outputs.api }}
       ui:
         value: ${{ jobs.changes.outputs.ui }}
+      docker:
+        value: ${{ jobs.changes.outputs.docker }}
       installer:
         value: ${{ jobs.changes.outputs.installer }}
       repo:
@@ -39,6 +41,7 @@ jobs:
       cli: ${{ github.event_name != 'pull_request' || steps.filter.outputs.cli == 'true' || steps.filter.outputs.installer_files == 'true' }}
       api: ${{ github.event_name != 'pull_request' || steps.filter.outputs.api == 'true' }}
       ui: ${{ github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true' || steps.filter.outputs.installer_files == 'true' }}
+      docker: ${{ github.event_name != 'pull_request' || steps.filter.outputs.docker == 'true' }}
       installer: ${{ github.event_name != 'pull_request' || steps.filter.outputs.cli == 'true' || steps.filter.outputs.ui == 'true' || steps.filter.outputs.installer_files == 'true' }}
       repo: ${{ github.event_name != 'pull_request' || steps.filter.outputs.repo == 'true' }}
     steps:
@@ -66,6 +69,11 @@ jobs:
             ui:
               - *api
               - 'packages/ui/**'
+            docker:
+              - *workflows
+              - 'packages/core/**'
+              - 'packages/cli/**'
+              - 'packages/docker/**'
             installer_files:
               - *workflows
               - 'installer/**'

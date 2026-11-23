@@ -72,6 +72,7 @@ The template has more layers than most projects use. Delete a layer together wit
 | --- | --- |
 | The Windows window | `packages/ui/`, its entries in the root `pyproject.toml` (workspace members, sources, dev group), the `ui` product in `installer/build.toml`, `ci-ui.yml`, `audit-ui.yml`, `security-ui.yml` and the `ui` jobs and outputs in `ci.yml`, `security.yml`, `audit.yml`, `changes.yml` and `ci-installer.yml` |
 | The HTTP API | `packages/api/`, `api-compat.yml`, `ci-api.yml`, `audit-api.yml`, `security-api.yml` and their entries as above (the window needs the API, so remove the window first) |
+| The Docker image | `packages/docker/`, `ci-docker.yml`, `security-docker.yml`, `release-docker.yml`, the `docker` entries in `ci.yml`, `security.yml`, `changes.yml`, `release.yml` and `dependabot.yml` |
 | Installers | `installer/`, `brand/`, `ci-installer.yml`, `release-installer.yml`, the installer actions (`install-installer-tools`, `test-linux-packages`, `test-windows-installer`, `project-info`) and the `installer` entries in `ci.yml`, `changes.yml` and `release.yml` |
 | The command line | `packages/cli/` and the matching workflows and entries (the installers are built from it, so remove them too) |
 

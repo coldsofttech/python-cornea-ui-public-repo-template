@@ -15,6 +15,7 @@ Changes to the template itself. This file is removed when you initialise a repos
 
 ### Added
 
+- A Docker image (`packages/docker`) of the command line, with image tests, released to GitHub Container Registry on a `docker-v<version>` tag.
 - Sample icon files in `brand/light/png` for the Linux packages, and a `brand/README.md`.
 
 ### Removed

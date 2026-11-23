@@ -8,10 +8,11 @@ name: Release
 #   installer-vX.Y.Z installer the full Windows setup (command line and window), the
 #                           portable zip, and the deb and rpm packages on
 #                           the GitHub release                               environment: installer
+#   docker-vX.Y.Z   docker  the image to GHCR                                environment: docker
 #
 # After a release is published, the update-latest action keeps the repository's Latest badge on the newest
 # core release (core owns it) and moves a <package>-latest tag and pre-release (core-latest, cli-latest,
-# installer-latest) to the new version, so every package has its own stable "latest".
+# installer-latest, docker-latest) to the new version, so every package has its own stable "latest".
 # Pre-releases change nothing.
 #
 # The tag must match the version in the package's pyproject.toml (installer/build.toml for the installer). Release core before cli, because
@@ -101,3 +102,10 @@ jobs:
     uses: ./.github/workflows/release-installer.yml
     permissions:
       contents: write
+
+  docker:
+    if: startsWith(github.event.release.tag_name, 'docker-v')
+    uses: ./.github/workflows/release-docker.yml
+    permissions:
+      contents: write # move the docker-latest pointer
+      packages: write

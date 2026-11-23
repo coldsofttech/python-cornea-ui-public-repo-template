@@ -11,6 +11,8 @@ A high-level view of how this project is protected. Each package documents its o
 | API (`example-api`) | requests when run on its own: API key, response headers, request size limit | [API security](../packages/api/docs/security.md) |
 | UI (`example-ui`) | the local window server: host and origin checks, start-up token, content security policy | [UI security](../packages/ui/docs/security.md) |
 
+| Docker | the image: unprivileged user, minimal runtime, no baked-in secrets | [Docker security](../packages/docker/docs/security.md) |
+
 The CLI, API and UI all build on the core library, so its protections apply to each of them.
 
 ## Repository
@@ -22,7 +24,7 @@ The CLI, API and UI all build on the core library, so its protections apply to e
 
 ## Supply chain
 
-Dependabot covers Python, npm and Actions. Each package has its own audit and security workflows (`audit-<package>.yml`, `security-<package>.yml`) that check locked dependencies weekly and run static analysis, and `audit-ui.yml` also runs `npm audit`. Dependency review blocks vulnerable additions on pull requests, and the lock files are committed. Releases are published with trusted publishing, with no stored token (see [releasing](releasing.md)). Windows installers can be signed, and release files carry `SHA256SUMS.txt`.
+Dependabot covers Python, npm, Docker and Actions. Each package has its own audit and security workflows (`audit-<package>.yml`, `security-<package>.yml`) that check locked dependencies weekly and run static analysis, and `audit-ui.yml` also runs `npm audit`. Dependency review blocks vulnerable additions on pull requests, and the lock files are committed. Releases are published with trusted publishing, with no stored token (see [releasing](releasing.md)). Windows installers can be signed, and release files carry `SHA256SUMS.txt`.
 
 ## Rules to keep
 

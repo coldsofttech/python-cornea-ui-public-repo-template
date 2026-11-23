@@ -34,6 +34,7 @@ packages/cli/src/example_cli/        Typer + Rich command line over the library
 packages/api/src/example_api/        FastAPI app over the library: routers, schemas, errors, settings
 packages/ui/src/example_ui/          Cornea Shell wiring and the `example-ui` command
 packages/ui/src/example_ui/ui/       React + Vite frontend (JavaScript); `dist/` is built, not committed
+packages/docker/                     Dockerfile, image tests and docs of the container image (built from core and cli)
 packages/*/tests/                    unit/ (coverage, 80% minimum) and integration/ (marked `integration`: skipped by default and in pre-commit, run in CI)
 packages/*/docs/                     each package's architecture, development, packaging, security and guides
 installer/                           PyInstaller spec, NSIS script, nfpm config, build script and pinned tool versions
@@ -43,7 +44,7 @@ pyproject.toml                       uv workspace root: dev dependencies and sha
 uv.lock                              locked dependency set, checked by CI with --locked
 ```
 
-The repository is a uv workspace of four packages that are tested and versioned separately. The core and the command line are published to PyPI; the API and the window ship in the installers. Each version lives in one place (`__version__` in the core and the command line, `version` in the API's and the window's `pyproject.toml`), and the release workflow compares it with the release tag. Each package has its own architecture notes: [core](../packages/core/docs/architecture.md), [command line](../packages/cli/docs/architecture.md), [API](../packages/api/docs/architecture.md) and [window](../packages/ui/docs/architecture.md).
+The repository is a uv workspace of four Python packages, plus a Docker image, that are tested and versioned separately. The core and the command line are published to PyPI; the API and the window ship in the installers. Each version lives in one place (`__version__` in the core and the command line, `version` in the API's and the window's `pyproject.toml`), and the release workflow compares it with the release tag. Each package has its own architecture notes: [core](../packages/core/docs/architecture.md), [command line](../packages/cli/docs/architecture.md), [API](../packages/api/docs/architecture.md) and [window](../packages/ui/docs/architecture.md).
 
 ## Library and CLI layers
 
@@ -78,12 +79,12 @@ flowchart LR
 
 | Workflow | Trigger | Purpose |
 | --- | --- | --- |
-| `ci.yml` | Pull request, push to `main` | Calls `ci-core.yml`, `ci-cli.yml`, `ci-api.yml`, `ci-ui.yml` (lint, tests, integration tests, build), `ci-repo.yml` (everything outside `packages/`) and `ci-installer.yml` (builds, installs and removes the installers, after the cli and ui passed). `changes.yml` limits a pull request to the parts it touches. A final `ci` job gates on all of them and is the only check the ruleset requires. |
-| `security.yml` | Pull request, push to `main`, weekly, manual | Calls `security-core.yml`, `security-cli.yml`, `security-api.yml`, `security-ui.yml` and `security-repo.yml`: Semgrep, uploaded as code scanning results. Not required. |
+| `ci.yml` | Pull request, push to `main` | Calls `ci-core.yml`, `ci-cli.yml`, `ci-api.yml`, `ci-ui.yml` (lint, tests, integration tests, build), `ci-docker.yml` (builds the image and tests it), `ci-repo.yml` (everything outside `packages/`) and `ci-installer.yml` (builds, installs and removes the installers, after the cli and ui passed). `changes.yml` limits a pull request to the parts it touches. A final `ci` job gates on all of them and is the only check the ruleset requires. |
+| `security.yml` | Pull request, push to `main`, weekly, manual | Calls `security-core.yml`, `security-cli.yml`, `security-api.yml`, `security-ui.yml`, `security-docker.yml` (Semgrep, Trivy on the Dockerfile and, weekly, on the image) and `security-repo.yml`: Semgrep, uploaded as code scanning results. Not required. |
 | `api-compat.yml` | Pull request that changes `packages/api/docs/openapi.json` | Reports breaking API changes with oasdiff. Not required. |
 | `dependency-review.yml` | Pull request | Blocks pull requests that add vulnerable dependencies. |
 | `audit.yml` | Weekly, manual, and pull requests that change a lock file | Calls `audit-<package>.yml` and `audit-repo.yml`: `pip-audit` on each package's locked dependencies, and `npm audit` for the frontend. |
-| `release.yml` | GitHub release published | Routes by tag: `vX.Y.Z` releases the core, `cli-vX.Y.Z` the command line (PyPI), `installer-vX.Y.Z` the installers (attached to the release). Each waits for its environment's approval. See [releasing](releasing.md). |
+| `release.yml` | GitHub release published | Routes by tag: `vX.Y.Z` releases the core, `cli-vX.Y.Z` the command line (PyPI), `installer-vX.Y.Z` the installers (attached to the release), `docker-vX.Y.Z` the image (GHCR). Each waits for its environment's approval. See [releasing](releasing.md). |
 | `init.yml` | Manual | One-time: replaces the owner and repository name, renames the example packages and commands to your name, regenerates the lock file and the OpenAPI document, and opens a pull request. Skipped in the template itself. |
 
 CodeQL runs through GitHub's default setup rather than a workflow file.

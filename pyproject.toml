@@ -42,6 +42,7 @@ src = [
   "packages/cli/tests",
   "packages/api/tests",
   "packages/ui/tests",
+  "packages/docker/tests",
 ]
 target-version = "py311"
 

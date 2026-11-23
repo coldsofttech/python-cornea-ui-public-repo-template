@@ -1,6 +1,6 @@
 name: CI
 
-# Calls one workflow per package (ci-core, ci-cli, ci-api, ci-ui), one for the rest
+# Calls one workflow per package (ci-core, ci-cli, ci-api, ci-ui, ci-docker), one for the rest
 # of the repository (ci-repo) and ci-installer once the cli and ui have passed; `ci` at the end is
 # the single required check for the branch ruleset. On pull requests, `changes` limits the run to
 # the parts of the repository the change can affect; every other event runs everything.
@@ -43,6 +43,11 @@ jobs:
     if: needs.changes.outputs.ui == 'true'
     uses: ./.github/workflows/ci-ui.yml
 
+  docker:
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
+    uses: ./.github/workflows/ci-docker.yml
+
   repo:
     needs: changes
     if: needs.changes.outputs.repo == 'true'
@@ -56,7 +61,7 @@ jobs:
   ci:
     name: CI result
     if: always()
-    needs: [changes, core, cli, api, ui, repo, installer]
+    needs: [changes, core, cli, api, ui, docker, repo, installer]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

@@ -1,6 +1,6 @@
 # Development
 
-Repository-wide tooling and workflow. Each package has its own guide with the commands for that package: [core](../packages/core/docs/development.md), [command line](../packages/cli/docs/development.md), [API](../packages/api/docs/development.md) and [window](../packages/ui/docs/development.md).
+Repository-wide tooling and workflow. Each package has its own guide with the commands for that package: [core](../packages/core/docs/development.md), [command line](../packages/cli/docs/development.md), [API](../packages/api/docs/development.md) and [window](../packages/ui/docs/development.md). The container image is described in [`packages/docker/docs`](../packages/docker/docs/docker.md).
 
 ## Layout
 
@@ -9,6 +9,7 @@ packages/core/         example-package: the library, all the logic, never prints
 packages/cli/          example-cli: Typer + Rich command line over the library
 packages/api/          example-api: FastAPI app over the library (not published to PyPI)
 packages/ui/           example-ui: Cornea Shell window and the React frontend (not published to PyPI)
+packages/docker/       Dockerfile, image tests and docs of the container image (core and cli)
 packages/*/src/        each package's source; packages/*/tests/ has unit/ and integration/
 packages/*/docs/       each package's documentation
 installer/             the Windows setup, Linux packages and the PyInstaller build (see installer/docs/packaging.md)
@@ -83,7 +84,7 @@ Each package has `tests/unit/` and `tests/integration/`; tests in an `integratio
 
 ## Continuous integration
 
-The `ci` workflow calls one workflow per package (`ci-core`, `ci-cli`, `ci-api`, `ci-ui`), one for the rest of the repository (`ci-repo`) and `ci-installer` once the cli and ui checks pass. On pull requests, `changes.yml` runs only the parts a change can affect (`api` and `ui` follow `core`; `installer` follows `cli` and `ui`). A final `ci` job gates on all of them and is the single required check in the branch ruleset. Shared steps live in `.github/actions/`. `audit`, `security` and `api-compat` are separate workflows; see [architecture](architecture.md#workflows).
+The `ci` workflow calls one workflow per package (`ci-core`, `ci-cli`, `ci-api`, `ci-ui`, `ci-docker`), one for the rest of the repository (`ci-repo`) and `ci-installer` once the cli and ui checks pass. On pull requests, `changes.yml` runs only the parts a change can affect (`api` and `ui` follow `core`; `docker` follows `core` and `cli`; `installer` follows `cli` and `ui`). A final `ci` job gates on all of them and is the single required check in the branch ruleset. Shared steps live in `.github/actions/`. `audit`, `security` and `api-compat` are separate workflows; see [architecture](architecture.md#workflows).
 
 ## Releasing
 
