@@ -12,6 +12,7 @@ How a release reaches PyPI, GitHub and the package managers. The PyPI trusted-pu
 | --- | --- |
 | Check | the tag must equal the version |
 | Build | wheel and sdist (core library and command line only) |
+| Build (compiled) | with `pyd_support`: compiled wheels for each OS and architecture, no sdist, no Homebrew; see [development](development.md#compiled-releases-pyd--so) |
 | Publish | PyPI, through trusted publishing |
 | Installers | Windows setups and zip, Linux deb and rpm; signed when a signing command is set |
 | Release page | all files plus `SHA256SUMS.txt`; release notes from the `CHANGELOG.md` section, only if the release has no notes yet |

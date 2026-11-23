@@ -93,3 +93,16 @@ Publishing uses [trusted publishing](https://docs.pypi.org/trusted-publishers/),
 2. Create an environment named `pypi`. The settings script does this and restricts it to `v*` tags.
 3. Bump `__version__` in `src/<package>/__init__.py` and update `CHANGELOG.md`.
 4. Publish a GitHub release tagged `v<version>`. The workflow fails if the tag and version differ.
+
+### Compiled releases (.pyd / .so)
+
+Tick `pyd_support` when running the **Init** workflow to publish compiled modules to PyPI instead of plain `.py` sources. Init then switches the build backend to setuptools with Cython and adds a `setup.py`; the `release` workflow detects that file and builds platform wheels with cibuildwheel instead of running `uv build`.
+
+- Only the published packages (the core library and the command line) are compiled. They are listed in `[tool.setuptools.packages.find]`. The API, the window and the installers are unchanged: PyInstaller builds them from the plain sources.
+- Modules compile to `.pyd` on Windows and `.so` on Linux and macOS, one wheel per OS, architecture and Python version. No sdist is published, so platforms without a wheel cannot install the package, and the Homebrew job is skipped because its formula installs the sdist.
+- `__init__.py` and `__main__.py` stay plain Python (packages need the first, and `python -m` needs a source `__main__.py`), so keep logic in other modules.
+- Compiling is obfuscation, not encryption: it raises the effort needed to read the code but does not make it secret.
+- Compilation only happens when `PYD_BUILD=1` (set by cibuildwheel), so `uv sync`, tests, coverage and the installers keep running against the plain sources. To try it locally, run `PYD_BUILD=1 uv build --wheel`. cibuildwheel runs the `tests/core` and `tests/cli` suites against each compiled wheel.
+- `.pyi` type stubs are generated with mypy's `stubgen` during the compiled build and shipped beside the binaries, so consumers still get type checking. Stubs expose signatures and docstrings, not implementations.
+- `[tool.hatch.version]` stays in `pyproject.toml` because `installer/projectinfo.py` reads it; the build itself takes the version from `[tool.setuptools.dynamic]`.
+

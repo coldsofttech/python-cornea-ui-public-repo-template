@@ -4,6 +4,10 @@ Changes to the template itself. This file is removed when you initialise a repos
 
 ## [Unreleased]
 
+### Added
+
+- `pyd_support` option on the Init workflow to publish compiled (.pyd/.so) wheels of the core library and command line instead of plain sources, with generated `.pyi` stubs.
+
 ## [0.1.2] - 2026-11-11
 
 ### Added

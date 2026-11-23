@@ -3,7 +3,9 @@ name: Release
 # Runs when a GitHub release is published:
 #
 #   build / publish        the wheel and sdist (core library and command line), then PyPI (trusted
-#                          publishing, no stored tokens)
+#                          publishing, no stored tokens). If setup.py exists (added by the Init
+#                          workflow's pyd_support option), build-compiled builds compiled platform
+#                          wheels with cibuildwheel instead and no sdist is published.
 #   installers-*           setup.exe (Windows), deb and rpm (Linux), optionally signed
 #   github-release         SHA-256 checksums and the installers on the release, notes from CHANGELOG.md
 #   homebrew, scoop, winget  package-manager updates, each opened as a pull request
@@ -28,26 +30,71 @@ permissions:
   contents: read
 
 jobs:
+  # Always runs: the installers and the GitHub release wait for it. With pyd_support it only checks
+  # the tag, and build-compiled builds the wheels.
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      compiled: ${{ steps.flag.outputs.compiled }}
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.3
+      - id: flag
+        run: |
+          if [ -f setup.py ]; then echo "compiled=true" >> "$GITHUB_OUTPUT"; else echo "compiled=false" >> "$GITHUB_OUTPUT"; fi
       - name: Check tag matches package version
         env:
           TAG: ${{ github.event.release.tag_name }}
+          COMPILED: ${{ steps.flag.outputs.compiled }}
         run: |
-          version="$(uv version --short)"
+          if [ "$COMPILED" = "true" ]; then
+            # uv cannot read a setuptools dynamic version, so read __version__ from the package.
+            version="$(python3 - <<'PY'
+          import re
+          import tomllib
+          from pathlib import Path
+
+          attr = tomllib.loads(Path("pyproject.toml").read_text())["tool"]["setuptools"]["dynamic"]["version"]["attr"]
+          source = Path("src", *attr.split(".")[:-1], "__init__.py").read_text()
+          print(re.search(r'^__version__\s*=\s*"([^"]+)"', source, re.M).group(1))
+          PY
+            )"
+          else
+            version="$(uv version --short)"
+          fi
           [ "$TAG" = "v$version" ] || { echo "Tag $TAG does not match version $version"; exit 1; }
-      - run: uv build
-      - uses: actions/upload-artifact@v7
+      - if: steps.flag.outputs.compiled != 'true'
+        run: uv build
+      - if: steps.flag.outputs.compiled != 'true'
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
 
-  publish:
+  build-compiled:
+    name: build-compiled (${{ matrix.os }})
     needs: build
+    if: needs.build.outputs.compiled == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-15-intel, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pypa/cibuildwheel@v4.3.5
+        with:
+          output-dir: dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist-${{ matrix.os }}
+          path: dist/*.whl
+
+  publish:
+    needs: [build, build-compiled]
+    if: ${{ !cancelled() && !failure() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: pypi
@@ -56,7 +103,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: dist
+          pattern: dist*
+          merge-multiple: true
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
 
@@ -160,9 +208,11 @@ jobs:
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
           fi
 
+  # The formula installs the sdist from PyPI, which compiled releases do not publish, so Homebrew
+  # is skipped when pyd_support is on.
   homebrew:
-    if: ${{ vars.PUBLISH_HOMEBREW == 'true' }}
-    needs: [publish, github-release]
+    if: ${{ vars.PUBLISH_HOMEBREW == 'true' && needs.build.outputs.compiled != 'true' }}
+    needs: [build, publish, github-release]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
