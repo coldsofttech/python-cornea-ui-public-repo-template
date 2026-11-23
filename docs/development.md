@@ -1,18 +1,21 @@
 # Development
 
+Repository-wide tooling and workflow. Each package has its own guide with the commands for that package: [core](../packages/core/docs/development.md), [command line](../packages/cli/docs/development.md), [API](../packages/api/docs/development.md) and [window](../packages/ui/docs/development.md).
+
 ## Layout
 
 ```text
-src/example_package/   library: all the logic, never prints or exits (typed)
-src/example_cli/       Typer + Rich command line: parses input, calls the library, shows output
-src/example_api/       FastAPI app: routers, schemas, errors, settings (see api.md)
-src/example_ui/        Cornea Shell wiring and the `example-ui` command (see ui.md)
-src/example_ui/ui/     React + Vite frontend (JavaScript)
-tests/                 pytest tests, one folder per component: core/, cli/, api/, ui/ (each with integration/)
-installer/             PyInstaller specs, NSIS scripts, nfpm config, pinned tool versions (see packaging.md)
-scripts/               repository settings, OpenAPI export, installer build, release manifests
-docs/                  documentation, including the generated openapi.json and cli-reference.md
-pyproject.toml         metadata, dependencies and tool configuration
+packages/core/         example-package: the library, all the logic, never prints or exits (typed)
+packages/cli/          example-cli: Typer + Rich command line over the library
+packages/api/          example-api: FastAPI app over the library (not published to PyPI)
+packages/ui/           example-ui: Cornea Shell window and the React frontend (not published to PyPI)
+packages/*/src/        each package's source; packages/*/tests/ has unit/ and integration/
+packages/*/docs/       each package's documentation
+installer/             the Windows setup, Linux packages and the PyInstaller build (see installer/docs/packaging.md)
+brand/                 sample icon and setup artwork used by the installers
+scripts/               repository settings and the Init rename script
+docs/                  repository-wide documentation
+pyproject.toml         uv workspace root: dev dependencies and shared tool configuration
 uv.lock                locked dependencies (commit this file)
 ```
 
@@ -20,20 +23,18 @@ The example names are `example_package` (library), `example_cli` (command line p
 
 - replaces the owner and repository name;
 - renames the packages (`acme_package`, `acme_cli`, `acme_api`, `acme_ui`), the commands (`acme-cli`, `acme-ui`), the settings prefix (`ACME_API_`) and the app id, and replaces "Example App" with your title;
-- generates new product GUIDs for the Windows installers, then regenerates `uv.lock`, `docs/cli-reference.md` and `docs/openapi.json`.
+- generates a new product GUID for the Windows setup (`installer/build.toml`), then regenerates `uv.lock` and `packages/api/docs/openapi.json`.
 
-The rename is `scripts/init_template.py` (it replaces only those exact patterns, so prose such as "for example" is left alone, and it deletes itself afterwards, along with `TEMPLATE_CHANGELOG.md`, which records the template's own changes and is not meant for your repository). The workflows and the installer scripts read names from `pyproject.toml` (`[project.scripts]` and `[tool.installer]`, through `installer/projectinfo.py`), so they need no renaming. If you add a new place that uses an example name, keep it in one of the patterns the script knows.
+The rename is `scripts/init_template.py` (it replaces only those exact patterns, so prose such as "for example" is left alone, and it deletes itself afterwards, along with `TEMPLATE_CHANGELOG.md`, which records the template's own changes and is not meant for your repository). The workflows and the installer scripts read names from each package's `pyproject.toml` and `installer/build.toml`, so they need no renaming. If you add a new place that uses an example name, keep it in one of the patterns the script knows.
 
 What is left for you:
 
-1. Replace the window icon (`src/<ui package>/ui/public/icon.png`).
-2. Set the description and URLs, and add an email to the author, in `pyproject.toml`.
+1. Replace the window icon (`packages/ui/src/<ui package>/ui/public/icon.png`) and the artwork in `brand/`.
+2. Set the descriptions and URLs, and add an email to the author, in each package's `pyproject.toml` and in `installer/build.toml`.
 3. Review the pull request for lines that still say "example" (the script lists them).
 4. Replace the example React app, API routes and window action.
 
-See [packaging](packaging.md) and [releasing](releasing.md) for the installers and the first-release checklist.
-
-Commands, options and exit codes are documented in [CLI reference](cli.md).
+See [installer packaging](../installer/docs/packaging.md) and [releasing](releasing.md) for the installers and the first-release checklist. Commands, options and exit codes are in the [command line guide](../packages/cli/docs/guides/cli.md).
 
 ## Tooling
 
@@ -48,16 +49,16 @@ Commands, options and exit codes are documented in [CLI reference](cli.md).
 | Frontend | Node 22 or newer, Vite, React, Vitest, ESLint, Prettier |
 
 ```bash
-uv sync                    # create .venv and install dev dependencies
-uv run pytest              # unit tests with coverage (skips integration tests)
-uv run pytest -m integration --no-cov   # integration tests only
-uv run ruff check .        # lint
-uv run ruff format .       # format
-uv run mypy                # type check
-uv build                   # build the sdist and wheel (core library and command line only)
+uv sync --all-packages                       # create .venv and install every package and the dev tools
+uv run pytest packages/core/tests            # unit tests of one package, with coverage (skips integration tests)
+uv run pytest -m integration packages/api/tests --no-cov   # integration tests of one package
+uv run ruff check .                          # lint
+uv run ruff format .                         # format
+uv run mypy                                  # type check
+uv build --package example-cli               # build the sdist and wheel of a published package
 ```
 
-Frontend, from `src/example_ui/ui` (or with `--prefix`):
+Frontend, from `packages/ui/src/example_ui/ui` (or with `--prefix`):
 
 ```bash
 npm ci                     # install exactly what package-lock.json says
@@ -70,26 +71,20 @@ npm run format             # Prettier
 Other useful commands:
 
 ```bash
-uv run python -m example_api              # run the API on its own (see api.md)
-uv run python scripts/export_openapi.py   # regenerate docs/openapi.json
-uv run python -m example_ui --no-window   # serve the UI for a browser
+uv run python -m example_api                              # run the API on its own
+uv run python packages/api/scripts/export_openapi.py      # regenerate packages/api/docs/openapi.json
+uv run python -m example_ui --no-window                   # serve the UI for a browser
+uv run python installer/scripts/build.py --smoke          # build the installers for this OS
 ```
 
 ## Integration tests
 
-Tests are grouped by component: `tests/core/`, `tests/cli/`, `tests/api/` and `tests/ui/`. Each has an `integration/` folder, and tests in any `integration/` folder are marked `integration` automatically by `tests/conftest.py`. Run one component with, for example, `uv run pytest tests/api --no-cov`. They are excluded from the default `pytest` run, and therefore from the pre-commit hook, and run as their own job in CI. Put slower or end-to-end tests there. They include a real API server, a Schemathesis contract test and, on Windows with a built frontend, a real Cornea server without a window.
+Each package has `tests/unit/` and `tests/integration/`; tests in an `integration` folder are marked `integration` automatically by the package's `conftest.py`. They are excluded from the default `pytest` run, and therefore from the pre-commit hook, and run as their own jobs in CI. Run one package at a time (the `tests` folders share a name), for example `uv run pytest packages/api/tests --no-cov -m integration`. They include a real API server, a Schemathesis contract test and, on Windows with a built frontend, a real Cornea server without a window.
 
 ## Continuous integration
 
-The `ci` workflow runs six jobs: `lint` (pre-commit including Ruff, mypy, ESLint and Prettier, plus the generated-file checks), `ui` (frontend lint, tests and build), `test` (unit tests), `integration` (tests marked `integration`), `ui-windows` (the real Cornea test against the built frontend), and `build` (the wheel, `twine check`). The `test` and `integration` jobs run on Python 3.11 to 3.15 on Ubuntu, and on 3.11 on Windows and macOS. A final `ci` job gates on all of them and is the single required check in the branch ruleset.
+The `ci` workflow calls one workflow per package (`ci-core`, `ci-cli`, `ci-api`, `ci-ui`), one for the rest of the repository (`ci-repo`) and `ci-installer` once the cli and ui checks pass. On pull requests, `changes.yml` runs only the parts a change can affect (`api` and `ui` follow `core`; `installer` follows `cli` and `ui`). A final `ci` job gates on all of them and is the single required check in the branch ruleset. Shared steps live in `.github/actions/`. `audit`, `security` and `api-compat` are separate workflows; see [architecture](architecture.md#workflows).
 
-## Releasing to PyPI
+## Releasing
 
-This section covers the PyPI side. Installers, signing and the package managers are in [releasing](releasing.md) and [packaging](packaging.md).
-
-Publishing uses [trusted publishing](https://docs.pypi.org/trusted-publishers/), so no API token is stored.
-
-1. On PyPI, add a trusted publisher for this repository: workflow `release.yml`, environment `pypi`.
-2. Create an environment named `pypi`. The settings script does this and restricts it to `v*` tags.
-3. Bump `__version__` in `src/<package>/__init__.py` and update `CHANGELOG.md`.
-4. Publish a GitHub release tagged `v<version>`. The workflow fails if the tag and version differ.
+The routing of tags to packages, signing and the one-time set-up are in [releasing](releasing.md); the steps for each package are in its packaging notes.

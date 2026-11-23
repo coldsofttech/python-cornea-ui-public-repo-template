@@ -1,0 +1,30 @@
+name: Audit UI
+
+# packages/ui: known vulnerabilities in the locked Python and npm dependencies. Called by audit.yml.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  ui-audit:
+    name: ui audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+      - name: Read project names
+        uses: ./.github/actions/project-info
+      - name: Audit Python dependencies
+        uses: ./.github/actions/audit-python
+        with:
+          package: example-ui
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: ${{ env.UI_DIR }}/.nvmrc
+      - name: Audit npm dependencies
+        run: npm audit --audit-level=high
+        working-directory: ${{ env.UI_DIR }}

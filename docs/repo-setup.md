@@ -61,19 +61,18 @@ Do **not** delete these, although they look like template helpers. Workflows run
 
 | File | Used by |
 | --- | --- |
-| `scripts/update_manifests.py` | `release.yml`: the release notes from the changelog on every release, plus the Homebrew and Scoop files when those channels are on |
-| `scripts/build_installer.py`, `installer/` | `build.yml` and `release.yml` |
-| `scripts/export_openapi.py` | `ci.yml`, which checks `docs/openapi.json` is current |
-| `installer/projectinfo.py` | Every workflow that needs the project's names |
+| `installer/` (including `installer/scripts/build.py`) | `ci-installer.yml`, `release-installer.yml` and the `project-info` action |
+| `packages/api/scripts/export_openapi.py` | `ci-api.yml`, which checks `packages/api/docs/openapi.json` is current |
 
 ## Parts you may not need
 
-The template has more layers than most projects use. Delete a layer together with everything that belongs to it, and the matching lines in `README.md`, `docs/` and `CLAUDE.md`:
+The template has more layers than most projects use. Delete a layer together with everything that belongs to it, and the matching lines in `README.md` and `docs/`:
 
 | If you do not need | Delete |
 | --- | --- |
-| The Windows window | `src/<ui package>/`, its tests in `tests/ui/`, `installer/pyinstaller/ui.spec`, `installer/windows/nsis/ui.nsi`, the `ui` group in `pyproject.toml`, and the `ui`, `ui-windows` jobs in `ci.yml` |
-| The HTTP API | `src/<api package>/`, `tests/api/`, `.env.example`, `docs/openapi.json`, `scripts/export_openapi.py`, `api-compat.yml`, and the `api` group in `pyproject.toml` (the window needs the API, so remove the window first) |
-| Installers | `installer/`, `scripts/build_installer.py`, `scripts/update_manifests.py` (then give `release.yml` its own release-notes step), `build.yml`, and the installer jobs of `release.yml` |
+| The Windows window | `packages/ui/`, its entries in the root `pyproject.toml` (workspace members, sources, dev group), the `ui` product in `installer/build.toml`, `ci-ui.yml`, `audit-ui.yml`, `security-ui.yml` and the `ui` jobs and outputs in `ci.yml`, `security.yml`, `audit.yml`, `changes.yml` and `ci-installer.yml` |
+| The HTTP API | `packages/api/`, `api-compat.yml`, `ci-api.yml`, `audit-api.yml`, `security-api.yml` and their entries as above (the window needs the API, so remove the window first) |
+| Installers | `installer/`, `brand/`, `ci-installer.yml`, `release-installer.yml`, the installer actions (`install-installer-tools`, `test-linux-packages`, `test-windows-installer`, `project-info`) and the `installer` entries in `ci.yml`, `changes.yml` and `release.yml` |
+| The command line | `packages/cli/` and the matching workflows and entries (the installers are built from it, so remove them too) |
 
-After removing a layer, update `[tool.installer]` in `pyproject.toml` and run the checks, since the names the scripts read must still exist.
+After removing a layer, run the checks (`uv lock`, `pre-commit run --all-files`), since the names the scripts read must still exist.

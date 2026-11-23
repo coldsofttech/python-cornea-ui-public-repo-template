@@ -34,7 +34,7 @@ A ready-to-use starting point for public Python tools that come with a command l
 
 1. Click **Use this template** on GitHub and create your new repository.
 2. Run the **Init** workflow from the Actions tab, giving it a short lowercase name (for example `acme`) and a display title, and merge the pull request it opens. This fills in your owner and repository name and renames the example packages and commands to yours. See the [development guide](docs/development.md).
-3. Set the publisher name shown in Add/Remove Programs and the file properties with `publisher` under `[tool.installer]` in `pyproject.toml` (the first author is used if you leave it out). Then replace the example React app, API routes, window action and icon with your own, and the placeholder installer icon and wizard images in `brand/`.
+3. Set the publisher name shown in Add/Remove Programs and the file properties with `publisher` in `installer/build.toml`. Then replace the example React app, API routes, window action and icon with your own, and the placeholder installer icon and wizard images in `brand/`.
 4. Add your contact details in `CODE_OF_CONDUCT.md`, delete `.github/workflows/init.yml`, and replace this description.
 5. Apply the repository protections by following the [setup guide](docs/repo-setup.md). Before your first release, work through the checklist in the [releasing guide](docs/releasing.md).
 6. Install dependencies and commit checks:
@@ -60,11 +60,11 @@ pipx install python-cornea-ui-public-repo-template
 
 For the desktop window, use the Windows installer. The API and the window are not part of the Python package. Or use a ready-made installer from the [releases page](https://github.com/coldsofttech/python-cornea-ui-public-repo-template/releases), where each file has a checksum in `SHA256SUMS.txt`:
 
-- **Windows:** the setup program installs for you or for everyone, and can add the command to your PATH. winget and Scoop are available once the maintainer enables them.
-- **Linux:** a `.deb` (Debian, Ubuntu) or `.rpm` (Fedora) package.
-- **macOS:** Homebrew, once the maintainer enables it.
+- **Windows:** the setup program installs the command line, the window or both, for you or for everyone, and can add the command to your PATH. A portable zip of the command line is also attached.
+- **Linux:** a `.deb` (Debian, Ubuntu) or `.rpm` (Fedora) package of the command line, for x86_64 and arm64.
+- **macOS:** install the PyPI package with `uv tool install` or `pipx`.
 
-See the [releasing guide](docs/releasing.md) for the install commands of each.
+See the [releasing guide](docs/releasing.md) for how releases are made.
 
 The window needs Windows 10 or 11 with the Microsoft Edge WebView2 runtime, which is already installed on current versions. You do not need Node to use the installed tool.
 
@@ -78,7 +78,7 @@ $ example-ui
 
 `example-ui` opens the app window. `example-ui --no-window` prints an address you can open in a browser instead. On other systems it explains that the window needs Windows; the command line and the API work everywhere.
 
-See the [CLI reference](docs/cli.md) for every command, option and exit code, and the [API guide](docs/api.md) to run the API on its own.
+See the [command line guide](packages/cli/docs/guides/cli.md) for every command, option and exit code, and the [API guide](packages/api/docs/api.md) to run the API on its own.
 
 > After renaming the commands, update the examples above. Once you have written your tool's real behavior, replace this example with a short walkthrough.
 
@@ -88,8 +88,8 @@ See the [CLI reference](docs/cli.md) for every command, option and exit code, an
 git clone https://github.com/coldsofttech/python-cornea-ui-public-repo-template.git
 cd python-cornea-ui-public-repo-template
 uv sync
-npm ci --prefix src/example_ui/ui
-npm run build --prefix src/example_ui/ui
+npm ci --prefix packages/ui/src/example_ui/ui
+npm run build --prefix packages/ui/src/example_ui/ui
 uv run python -m example_ui
 ```
 

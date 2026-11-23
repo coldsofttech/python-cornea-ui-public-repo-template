@@ -19,11 +19,11 @@ Open an issue using one of the provided forms. Search existing issues first. For
 
 | You changed | Run |
 | --- | --- |
-| Any Python | `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .` and `uv run mypy` |
-| The command line | `uv run pytest tests/cli`; if commands or options changed, regenerate `docs/cli-reference.md` (the command is in `docs/cli.md`) |
-| The API | `uv run pytest tests/api`, then `uv run python scripts/export_openapi.py` and commit `docs/openapi.json` |
-| The frontend (`src/<ui package>/ui`) | `npm ci`, `npm run lint`, `npm test` and `npm run build` in that folder |
-| The installers (`installer/`) | `uv sync --group installer`, then `uv run python scripts/build_installer.py --smoke` |
+| Any Python | `uv run pytest packages/<package>/tests` (one package at a time), `uv run ruff check .`, `uv run ruff format --check .` and `uv run mypy` |
+| The command line | `uv run pytest packages/cli/tests`; if commands or options changed, update `packages/cli/docs/guides/cli.md` |
+| The API | `uv run pytest packages/api/tests`, then `uv run python packages/api/scripts/export_openapi.py` and commit `packages/api/docs/openapi.json` |
+| The frontend (`packages/ui/src/<ui package>/ui`) | `npm ci`, `npm run lint`, `npm test` and `npm run build` in that folder |
+| The installers (`installer/`) | `uv sync --package example-cli --group installer`, then `uv run python installer/scripts/build.py --smoke` |
 
 You need Node for frontend work and Windows only to open the real window. The UI's Python tests use a stand-in for the window and run anywhere. See `docs/development.md` for the details.
 

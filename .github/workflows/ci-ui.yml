@@ -1,0 +1,180 @@
+name: CI UI
+
+# packages/ui: the Python window and the npm frontend. Lint, tests, integration tests and build.
+# Called by ci.yml.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  ui-lint:
+    name: ui lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+      - name: Set up uv
+        uses: ./.github/actions/setup-uv
+      - name: Lint
+        uses: ./.github/actions/lint-python
+        with:
+          path: packages/ui
+
+  ui-lint-npm:
+    name: ui lint-npm (${{ matrix.os }}, node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        node-version: ["22", "24", "26"]
+        include:
+          - os: windows-latest
+            node-version: "22"
+          - os: macos-latest
+            node-version: "22"
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+      - name: Lint and check formatting
+        uses: ./.github/actions/run-ui-npm
+        with:
+          node-version: ${{ matrix.node-version }}
+          command: npm run lint && npm run format:check
+
+  ui-test:
+    name: ui test (${{ matrix.os }}, ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.15"]
+        include:
+          - os: windows-latest
+            python-version: "3.15"
+          - os: macos-latest # Apple silicon
+            python-version: "3.15"
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+      - name: Run tests
+        uses: ./.github/actions/run-pytest
+        with:
+          package: ui
+          python-version: ${{ matrix.python-version }}
+
+  ui-test-npm:
+    name: ui test-npm (${{ matrix.os }}, node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        node-version: ["22", "24", "26"]
+        include:
+          - os: windows-latest
+            node-version: "22"
+          - os: macos-latest
+            node-version: "22"
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+      - name: Run tests
+        uses: ./.github/actions/run-ui-npm
+        with:
+          node-version: ${{ matrix.node-version }}
+          command: npm test
+
+  # The window runs on Windows (where Cornea Shell runs) and needs the built frontend.
+  ui-int-test:
+    name: ui int-test (windows)
+    needs: [ui-build-npm]
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+      - name: Read project names
+        uses: ./.github/actions/project-info
+      - name: Set up uv
+        uses: ./.github/actions/setup-uv
+        with:
+          python-version: "3.15"
+      - name: Download the UI build
+        uses: actions/download-artifact@v8
+        with:
+          name: ui-dist
+          path: ${{ env.UI_DIR }}/dist/
+      - name: Run the UI window integration tests
+        run: uv run pytest -m integration packages/ui/tests --no-cov
+
+  # The frontend has no integration script yet; --if-present makes this a no-op until it gets one.
+  ui-int-test-npm:
+    name: ui int-test-npm (${{ matrix.os }}, node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        node-version: ["22", "24", "26"]
+        include:
+          - os: windows-latest
+            node-version: "22"
+          - os: macos-latest
+            node-version: "22"
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+      - name: Run integration tests
+        uses: ./.github/actions/run-ui-npm
+        with:
+          node-version: ${{ matrix.node-version }}
+          command: npm run test:integration --if-present
+
+  ui-build:
+    name: ui build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+      - name: Set up uv
+        uses: ./.github/actions/setup-uv
+        with:
+          sync: "false"
+      - name: Build the package
+        run: uv build --package example-ui
+      - name: Check the package metadata
+        run: uvx twine check --strict dist/*
+
+  ui-build-npm:
+    name: ui build-npm (${{ matrix.os }}, node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        node-version: ["22", "24", "26"]
+        include:
+          - os: windows-latest
+            node-version: "22"
+          - os: macos-latest
+            node-version: "22"
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+      - name: Build the UI
+        uses: ./.github/actions/run-ui-npm
+        with:
+          node-version: ${{ matrix.node-version }}
+          command: npm run build
+          upload-dist: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '24' }}

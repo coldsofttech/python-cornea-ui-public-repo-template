@@ -1,0 +1,97 @@
+# The unified Windows setup (example-<version>-full-setup.exe): what is not read from the packages.
+# Read by installer/scripts/build.py.
+
+name = "example"                                  # file name stem of the setup and zip
+version = "0.1.0"                                 # of the setup itself, see CHANGELOG.md
+title = "Example App"                             # Apps & features name
+publisher = "Example App"
+install-dir = "Example App/Example App"           # folder under Program Files, "/" between parts
+# Start Menu folder, "/" between parts: the shortcuts and Uninstall go here. Keep it to one part:
+# Windows 11 lists only the top folder and flattens any folder inside it.
+start-menu-dir = "Example App"
+# Stable id of the product: keep it for the life of the project, so a newer setup replaces an
+# older install. To make a new one: python -c "import uuid; print(uuid.uuid4())"
+guid = "{4D1B6A7E-3C52-4E8F-9A07-5B2E8C6D1F93}"
+
+# Shown in the setup (Apps & features), the packages and the file properties.
+[licence]
+file = "LICENSE"                 # from the repository root, shown by the setup
+name = "MIT License"             # in the executables' file properties
+
+[links]
+homepage = "https://github.com/coldsofttech/python-cornea-ui-public-repo-template"
+issues = "https://github.com/coldsofttech/python-cornea-ui-public-repo-template/issues"
+changelog = "https://github.com/coldsofttech/python-cornea-ui-public-repo-template/blob/main/CHANGELOG.md"
+
+# Artwork, as paths from the repository root. icon and png-dir are required; the setup bitmaps are
+# optional (NSIS uses its own artwork when they are left out). See brand/README.md.
+[brand]
+icon = "brand/light/app.ico"                   # executables, setup and uninstaller (16 to 256 px)
+png-dir = "brand/light/png"                    # app-16.png ... app-256.png, for the Linux packages
+header-image = "brand/dark/nsis/header.bmp"    # setup header, 24-bit BMP, 150x57
+welcome-image = "brand/dark/nsis/welcome.bmp"  # setup welcome and finish pages, 24-bit BMP, 164x314
+
+# The files the build runs.
+[build]
+spec = "installer/pyinstaller/example.spec"  # PyInstaller: freezes every product into one folder
+nsi = "installer/windows/setup.nsi"          # NSIS: the Windows setup and uninstaller
+nfpm = "installer/linux/nfpm.yaml"           # nfpm: the Linux deb and rpm
+# pytest options of --smoke, before the product's smoke test
+smoke-args = ["-m", "integration", "--no-cov", "-p", "no:cacheprovider"]
+
+# What each OS builds (--format picks some of them). exe is the Windows setup (with its components
+# list and the command line zip); deb and rpm are the command line's Linux packages.
+[formats]
+windows = ["exe"]
+linux = ["deb", "rpm"]
+
+# The programs in the setup, in order. name is also the folder the setup stages the product in;
+# type is what it is (a Product class in build.py: cli or ui). The executable and its
+# entry point come from the package's pyproject.toml. Here: where the package is, its title and
+# version, what its build leaves out, the packages collected whole (code, data files, native
+# libraries and submodules, because static analysis misses what they load by name), its smoke
+# test and, for the window, the frontend.
+[[products]]
+name = "cli"
+type = "cli"
+path = "packages/cli"
+title = "Example CLI"                      # file properties of the executable
+# The version is kept in the code; a literal or "pyproject" (the [project] version) also work.
+version = { file = "src/example_cli/__init__.py", pattern = '^__version__\s*=\s*"([^"]+)"' }
+core-package = "example_package"           # the library the command line is built on
+smoke = "tests/integration/test_frozen_cli.py"  # run from path by --smoke: starts the built program
+# The command line imports neither the API nor the window, nor the libraries they need.
+excludes = [
+    "tkinter", "pytest", "example_api", "example_ui", "cornea", "webview", "fastapi", "uvicorn",
+]
+# rich lazily imports a Unicode-version-specific submodule that static analysis cannot see.
+collect = ["rich", "typer"]
+# Folders under lib/ whose .py files are shipped as compiled .pyc instead (smaller, and the
+# source is not shipped). Only for libraries that do not read their own source at run time.
+compile-pyc = ["rich", "typer"]
+
+[[products]]
+name = "ui"
+type = "ui"
+path = "packages/ui"
+title = { file = "src/example_ui/app.py", pattern = '^TITLE\s*=\s*"([^"]+)"' }
+version = "pyproject"                      # the [project] version of the package
+api-package = "example_api"                # the API the window hosts
+# The frontend: built by --build-frontend, frozen into the build at the same path under src/.
+frontend = "src/example_ui/ui"             # from the product path
+frontend-build = ["npm ci", "npm run build"]  # run in the frontend folder, in order
+frontend-dist = "dist"                     # build output, from the frontend folder
+smoke = "tests/integration/test_frozen_ui.py"
+# setuptools is only a PyInstaller dependency; nothing in the window imports it at run time.
+excludes = ["tkinter", "pytest", "setuptools", "pkg_resources"]
+# Cornea serves the frontend and the API with uvicorn, FastAPI and Starlette, which load protocol
+# and middleware modules by name; pywebview reaches WebView2 through pythonnet and clr_loader.
+collect = [
+    "cornea", "webview", "clr_loader", "pythonnet", "proxy_tools", "bottle", "uvicorn",
+    "fastapi", "starlette", "pydantic", "pydantic_settings", "pydantic_core", "anyio", "h11",
+]
+# Shipped as compiled .pyc, as for the command line: the window's libraries that are folders.
+compile-pyc = [
+    "cornea", "webview", "clr_loader", "pythonnet", "proxy_tools", "uvicorn", "fastapi",
+    "starlette", "pydantic", "pydantic_core", "pydantic_settings", "anyio", "h11"
+]

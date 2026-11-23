@@ -1,7 +1,11 @@
 version: 2
 updates:
+  # The workflows are in /.github/workflows; each composite action has its own folder under
+  # /.github/actions.
   - package-ecosystem: github-actions
-    directory: /
+    directories:
+      - /
+      - /.github/actions/*
     schedule:
       interval: weekly
     cooldown:
@@ -25,7 +29,7 @@ updates:
         patterns: ["*"]
 
   - package-ecosystem: npm
-    directory: /src/example_ui/ui
+    directory: /packages/ui/src/example_ui/ui
     schedule:
       interval: weekly
     cooldown:

@@ -6,8 +6,9 @@
 ``--name`` replaces the word ``example`` everywhere it names something: the packages
 (``example_package`` becomes ``acme_package``), the commands (``example-cli`` becomes ``acme-cli``),
 the settings prefix (``EXAMPLE_API_`` becomes ``ACME_API_``) and the window's app id. ``--title``
-replaces the window's display name ("Example App"). The two product GUIDs in the NSIS scripts are
-replaced with new ones. Directories named after the packages are renamed too.
+replaces the window's display name ("Example App"). The product GUID of the Windows setup
+(installer/build.toml) is replaced with a new one. Directories named after the packages are
+renamed too.
 
 Only those exact patterns are replaced, so prose such as "for example" and addresses such as
 ``example.com`` are left alone. Workflows need no renaming: they read the names from pyproject.toml.
@@ -28,7 +29,7 @@ SKIP_DIRS = {
 # read their names from pyproject.toml.
 SKIP_FILES = {"uv.lock", "LICENSE", "TEMPLATE_CHANGELOG.md"}
 SKIP_PREFIXES = (".github/workflows/", "scripts/init_template.py")
-GUID = re.compile(r'(!define GUID ")\{[0-9A-Fa-f-]{36}\}(")')
+GUID = re.compile(r'^(guid = ")\{[0-9A-Fa-f-]{36}\}(")', re.MULTILINE)
 
 
 def valid_name(name: str) -> bool:
@@ -76,7 +77,7 @@ def rewrite(root: Path, name: str, title: str, publisher: str, *, dry_run: bool)
         new = text
         for pattern, replacement in patterns:
             new = pattern.sub(lambda _, value=replacement: value, new)
-        if path.suffix == ".nsi":
+        if path.name == "build.toml":
             new = GUID.sub(
                 lambda m: f"{m.group(1)}{{{str(uuid.uuid4()).upper()}}}{m.group(2)}", new
             )
@@ -138,8 +139,10 @@ def main() -> None:
     publisher = args.publisher or args.title
     if not valid_title(publisher):
         raise SystemExit("--publisher must be 1 to 60 characters, without quotes or backslashes.")
-    if not (args.root / "src" / "example_package").is_dir():
-        raise SystemExit("src/example_package not found: this repository is already initialised.")
+    if not (args.root / "packages" / "core" / "src" / "example_package").is_dir():
+        raise SystemExit(
+            "packages/core/src/example_package not found: this repository is already initialised."
+        )
 
     changed = rewrite(args.root, args.name, args.title, publisher, dry_run=args.dry_run)
     renamed = rename_paths(args.root, args.name, dry_run=args.dry_run)

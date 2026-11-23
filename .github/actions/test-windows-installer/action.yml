@@ -1,0 +1,54 @@
+name: Test the Windows installer
+description: Install the built full setup.exe for the current user (each program alone, then both), run the installed programs, then uninstall one program at a time and check nothing is left behind. Run on Windows, after the installer is built and the project names are read.
+
+runs:
+  using: composite
+  steps:
+    - name: Install, run and uninstall the setup (per user)
+      shell: pwsh
+      run: |
+        $setup = Get-ChildItem "dist/installer/*-full-setup.exe" | Select-Object -First 1
+        $dir = Join-Path $env:RUNNER_TEMP "installed-app"
+        $userPath = { [Environment]::GetEnvironmentVariable('Path', 'User') }
+        function Run-Setup($file, $arguments) {
+          $process = Start-Process -Wait -PassThru -FilePath $file -ArgumentList $arguments
+          if ($process.ExitCode -ne 0) { throw "$file exited with code $($process.ExitCode)" }
+        }
+        function Check($condition, $message) { if (-not $condition) { throw $message } }
+
+        # The command line alone: on PATH, no window, and none of the window's files.
+        Run-Setup $setup.FullName @('/S', '/currentuser', '/COMPONENTS=cli', "/D=$dir")
+        Check (Test-Path "$dir/$env:CLI_NAME.exe") "the command line was not installed"
+        Check (-not (Test-Path "$dir/$env:UI_NAME.exe")) "the window was installed with the command line alone"
+        Check ((& $userPath) -like "*$dir*") "the setup did not add itself to PATH"
+        & "$dir/$env:CLI_NAME.exe" --version
+        Check ($LASTEXITCODE -eq 0) "$env:CLI_NAME failed after installing"
+        $alone = (Get-ChildItem "$dir/lib" -Recurse -File).Count
+
+        # Adding the window to it: both work, and the shared lib is not duplicated.
+        Run-Setup $setup.FullName @('/S', '/currentuser', '/COMPONENTS=ui', '/NOPATH', "/D=$dir")
+        Check (Test-Path "$dir/$env:UI_NAME.exe") "the window was not installed"
+        Check (Test-Path "$dir/$env:CLI_NAME.exe") "installing the window removed the command line"
+        Check ((Get-ChildItem "$dir/lib" -Recurse -File).Count -gt $alone) "the window added no files of its own"
+        & "$dir/$env:CLI_NAME.exe" --version
+        Check ($LASTEXITCODE -eq 0) "$env:CLI_NAME failed after installing both"
+        # The window is a GUI program: & would not wait for it, and it would still hold its files
+        # when the uninstaller runs.
+        $window = Start-Process -Wait -PassThru -FilePath "$dir/$env:UI_NAME.exe" -ArgumentList '--version'
+        Check ($window.ExitCode -eq 0) "$env:UI_NAME failed after installing both"
+        Check (Test-Path "$dir/uninstall.exe") "no uninstaller"
+
+        # Removing the window keeps the command line and the shared lib working.
+        # _?= makes the uninstaller run in place, so Start-Process can wait for it.
+        Run-Setup "$dir/uninstall.exe" @('/S', '/COMPONENTS=ui', "_?=$dir")
+        Check (-not (Test-Path "$dir/$env:UI_NAME.exe")) "uninstall left the window behind"
+        Check (Test-Path "$dir/lib") "removing the window removed the shared lib"
+        & "$dir/$env:CLI_NAME.exe" --version
+        Check ($LASTEXITCODE -eq 0) "$env:CLI_NAME failed after the window was removed"
+
+        # Removing the last program removes everything.
+        Run-Setup "$dir/uninstall.exe" @('/S', "_?=$dir")
+        Check (-not (Test-Path "$dir/$env:CLI_NAME.exe")) "uninstall left the command line behind"
+        Check (-not (Test-Path "$dir/lib")) "uninstall left lib behind"
+        Check (-not ((& $userPath) -like "*$dir*")) "uninstall left PATH changed"
+        Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue

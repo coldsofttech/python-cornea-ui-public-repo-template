@@ -1,0 +1,42 @@
+name: Run a UI npm command
+description: Read the project names, install Node.js, run `npm ci` and one command in the frontend folder. Run after checkout.
+
+inputs:
+  node-version:
+    description: Node.js version.
+    required: true
+  command:
+    description: Shell command run in the frontend folder.
+    required: true
+  upload-dist:
+    description: Upload the built frontend as the ui-dist artifact ("true" or "false").
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Read project names
+      uses: ./.github/actions/project-info
+    - name: Set up Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: ${{ env.UI_DIR }}/package-lock.json
+    - name: Install UI dependencies
+      shell: bash
+      run: npm ci
+      working-directory: ${{ env.UI_DIR }}
+    - name: Run ${{ inputs.command }}
+      shell: bash
+      env:
+        UI_COMMAND: ${{ inputs.command }}
+      run: eval "$UI_COMMAND"
+      working-directory: ${{ env.UI_DIR }}
+    - name: Upload the UI build
+      if: inputs.upload-dist == 'true'
+      uses: actions/upload-artifact@v7
+      with:
+        name: ui-dist
+        path: ${{ env.UI_DIR }}/dist/
+        if-no-files-found: error

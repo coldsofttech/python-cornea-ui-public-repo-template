@@ -1,9 +1,12 @@
 name: Security
 
 # Static analysis (Semgrep). Findings are uploaded as SARIF, so they show up in the
-# repository's Security tab (Code scanning) next to CodeQL, and the job fails when it finds a problem.
-# This job is not part of the required `ci` check, so a new rule does not block unrelated pull
+# repository's Security tab (Code scanning) next to CodeQL, and the jobs fail when they find a problem.
+# These jobs are not part of the required `ci` check, so a new rule does not block unrelated pull
 # requests. The weekly run catches vulnerabilities published after a merge.
+# Calls one workflow per package (security-core, security-cli, security-api, security-ui) and one for the rest of the repository (security-repo). On pull requests,
+# `changes` limits the run to the parts of the repository the change can affect; pushes to main,
+# the weekly run and manual runs scan everything.
 on:
   pull_request:
   push:
@@ -20,38 +23,53 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  semgrep:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+  changes:
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: ./.github/workflows/changes.yml
+
+  core:
+    needs: changes
+    if: needs.changes.outputs.core == 'true'
+    uses: ./.github/workflows/security-core.yml
     permissions:
       contents: read
       security-events: write
       actions: read
-    steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.3
-      # Actions are pinned to version tags on purpose (Dependabot keeps them current), so the
-      # rule that asks for commit SHAs is excluded. The rule about environment values reaching
-      # subprocess is excluded too: the only hit is SIGN_COMMAND, trusted build configuration that
-      # whoever runs the build sets on purpose (scripts/build_installer.py).
-      - name: Run Semgrep
-        run: >
-          uvx semgrep scan
-          --config p/python
-          --config p/javascript
-          --config p/react
-          --config p/owasp-top-ten
-          --config p/github-actions
-          --exclude tests
-          --exclude node_modules
-          --exclude-rule yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
-          --exclude-rule python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args
-          --error
-          --sarif --output semgrep.sarif
-          .
-      - name: Upload results
-        if: always() && hashFiles('semgrep.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: semgrep.sarif
-          category: semgrep
+
+  cli:
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    uses: ./.github/workflows/security-cli.yml
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+  api:
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    uses: ./.github/workflows/security-api.yml
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+  ui:
+    needs: changes
+    if: needs.changes.outputs.ui == 'true'
+    uses: ./.github/workflows/security-ui.yml
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+  repo:
+    needs: changes
+    if: needs.changes.outputs.repo == 'true'
+    uses: ./.github/workflows/security-repo.yml
+    permissions:
+      contents: read
+      security-events: write
+      actions: read

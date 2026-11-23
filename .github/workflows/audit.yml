@@ -2,6 +2,8 @@ name: Audit
 
 # Checks locked dependencies for known vulnerabilities. Dependency review only covers
 # pull requests, so this catches advisories published against dependencies already in use.
+# Calls one workflow per package (audit-core, audit-cli, audit-api, audit-ui) and one for the
+# workspace root (audit-repo).
 on:
   schedule:
     - cron: "0 6 * * 1"
@@ -13,28 +15,17 @@ permissions:
   contents: read
 
 jobs:
-  pip-audit:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.3
-      - name: Export locked dependencies
-        run: uv export --locked --no-emit-project --no-hashes --format requirements-txt -o requirements-audit.txt
-      - name: Audit
-        run: uvx pip-audit --requirement requirements-audit.txt --no-deps --disable-pip
+  core:
+    uses: ./.github/workflows/audit-core.yml
 
-  npm-audit:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7
-      - name: Read project names
-        shell: bash
-        run: python3 installer/projectinfo.py github || python installer/projectinfo.py github
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: ${{ env.UI_DIR }}/.nvmrc
-      - name: Audit
-        working-directory: ${{ env.UI_DIR }}
-        run: npm audit --audit-level=high
+  cli:
+    uses: ./.github/workflows/audit-cli.yml
+
+  api:
+    uses: ./.github/workflows/audit-api.yml
+
+  ui:
+    uses: ./.github/workflows/audit-ui.yml
+
+  repo:
+    uses: ./.github/workflows/audit-repo.yml

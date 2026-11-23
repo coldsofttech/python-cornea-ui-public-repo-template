@@ -6,27 +6,30 @@ name: API compatibility
 # or be merged knowingly after review.
 on:
   pull_request:
-    paths: [docs/openapi.json]
+    paths: [packages/api/docs/openapi.json]
 
 permissions:
   contents: read
 
 jobs:
   breaking-changes:
+    name: Breaking changes
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - name: Check out the base branch
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           path: base
-      - uses: actions/checkout@v7
+      - name: Check out the pull request
+        uses: actions/checkout@v7
         with:
           path: head
       - name: Check for breaking changes
-        if: hashFiles('base/docs/openapi.json') != ''
-        uses: oasdiff/oasdiff-action/breaking@v0.1.21
+        if: hashFiles('base/packages/api/docs/openapi.json') != ''
+        uses: oasdiff/oasdiff-action/breaking@v0.1.24
         with:
-          base: base/docs/openapi.json
-          revision: head/docs/openapi.json
+          base: base/packages/api/docs/openapi.json
+          revision: head/packages/api/docs/openapi.json
           fail-on: ERR

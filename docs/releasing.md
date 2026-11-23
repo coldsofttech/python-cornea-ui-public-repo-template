@@ -1,97 +1,38 @@
 # Releasing
 
-How a release reaches PyPI, GitHub and the package managers. The PyPI trusted-publisher setup is in [development](development.md#releasing-to-pypi); the installers are described in [packaging](packaging.md).
+How a release is routed. Each package's packaging notes hold the steps and set-up for its own release: [core](../packages/core/docs/packaging.md#releasing-to-pypi), [command line](../packages/cli/docs/packaging.md#making-a-release), [window](../packages/ui/docs/packaging.md) and [installers](../installer/docs/packaging.md#releasing).
 
-## Making a release
+## Releases are routed by tag
 
-1. Bump `__version__` in `src/<package>/__init__.py`, and move the `[Unreleased]` entries in `CHANGELOG.md` under a `## [x.y.z]` heading.
-2. Merge that pull request, then publish a GitHub release tagged `v<version>`.
-3. `release.yml` does the rest:
+Publishing a GitHub release runs `release.yml`, and the tag decides what is released. Each part has its own workflow, its own version and its own approval: the job that publishes waits for a reviewer of its environment (Settings > Environments), after everything has been built and tested.
 
-| Step | Result |
-| --- | --- |
-| Check | the tag must equal the version |
-| Build | wheel and sdist (core library and command line only) |
-| Publish | PyPI, through trusted publishing |
-| Installers | Windows setups and zip, Linux deb and rpm; signed when a signing command is set |
-| Release page | all files plus `SHA256SUMS.txt`; release notes from the `CHANGELOG.md` section, only if the release has no notes yet |
-| Package managers | Homebrew, Scoop and winget pull requests, each only when switched on |
-
-To check a download: `sha256sum --check SHA256SUMS.txt` (Linux), or `Get-FileHash <file>` on Windows and compare with the list.
-
-## Build time
-
-Starting targets, to be revisited after the first real runs and recorded here:
-
-| Job | Target | `timeout-minutes` |
+| Tag | Releases | Environment |
 | --- | --- | --- |
-| Windows installers | under 10 minutes | 20 on pull requests, 30 on releases |
-| Linux packages | under 5 minutes | 15 |
+| `v<version>` | the core library, `example-package`, on PyPI | `core` |
+| `cli-v<version>` | the command line, `example-cli`, on PyPI | `cli` |
+| `installer-v<version>` | the Windows setup (command line and window) and portable zip, and the Linux deb and rpm packages; version in `installer/build.toml` | `installer` |
 
-A job that passes its timeout fails instead of hanging. uv and npm caches keep builds inside the targets.
+The API and the window are not published to PyPI: they ship inside the installer. The tag must equal the version of the package it releases (`installer/build.toml` for the installers). Release the core before the command line, because `example-cli` depends on the `example-package` package on PyPI. Every release that attaches files also gets `SHA256SUMS.txt`.
+
+Before releasing, bump the package's version and move its `[Unreleased]` changelog entries under a version heading. The root [`CHANGELOG.md`](../CHANGELOG.md) covers the repository as a whole.
+
+## Latest markers
+
+GitHub allows one Latest release per repository, so the core owns the badge: after every full release the newest `v<version>` release is marked Latest. Each package also gets its own pointer, a tag and pre-release named `<package>-latest` (`core-latest`, `cli-latest`, `installer-latest`) that moves to the newest version and carries its files. Pre-releases change no marker.
 
 ## Signing
 
-Signing is off by default. Without it, Windows shows SmartScreen warnings and may block the unsigned programs; winget still accepts the manifest. Linux packages are not signed.
+The installers are signed only when the repository variable `SIGN_COMMAND` is set to a command that signs one file, with `{file}` where its path goes. The build signs the executables first, then the setup. Any provider works, since the command is yours (SignPath, Azure Trusted Signing, a certificate on a hardware token or in a cloud HSM); secrets it needs are repository secrets passed through `env` in `release-installer.yml`. Without signing, Windows shows SmartScreen warnings. Linux packages are not signed. The `publisher` in `installer/build.toml` only fills in Add/Remove Programs and the file properties; the publisher on the UAC prompt comes from the certificate.
 
-The `publisher` setting in `[tool.installer]` only fills in Add/Remove Programs and the file properties. The publisher on the UAC prompt comes from the code-signing certificate, so it appears only when the setup is signed.
+## Build time
 
-To turn it on, set the repository variable `SIGN_COMMAND` to a command that signs one file, with `{file}` where the path goes. The build signs the executables first, then each `setup.exe`, so the files inside the installer are signed too. Any provider works, since the command is yours. Examples of what exists, without a recommendation:
+Starting targets, to be revisited after the first real runs: the Windows installer under 10 minutes (timeout 30), the Linux packages under 5 minutes (timeout 15). A job that passes its timeout fails instead of hanging.
 
-- SignPath (free for qualifying open-source projects)
-- Azure Trusted Signing (paid subscription)
-- a certificate from a certificate authority, on a hardware token or in a cloud HSM
+## One-time set-up
 
-Secrets the command needs (a token, a certificate password) are added as repository secrets and passed to the `SIGN_COMMAND` step through `env` in `release.yml`, which is the one place to edit.
+1. Run `scripts/apply_repo_settings.py` to create the three environments, restricted to their tag patterns, and the branch ruleset.
+2. Add required reviewers to each environment you want an approval step for.
+3. On PyPI, add a trusted publisher for each published project: workflow `release.yml`, environment `core` or `cli`.
+4. Optionally set `SIGN_COMMAND`.
 
-## Package managers
-
-Each channel is off until you set its variable. All three need one secret, `PACKAGE_MANAGER_TOKEN`: a personal access token that can create repositories and open pull requests in the tap and bucket, and that can fork `microsoft/winget-pkgs`. Updates are always pull requests; nothing is pushed to a default branch.
-
-| Variable | Channel | Notes |
-| --- | --- | --- |
-| `PUBLISH_HOMEBREW=true` | Homebrew (macOS and Linux) | `HOMEBREW_TAP_REPO`, default `<owner>/homebrew-tap` |
-| `PUBLISH_SCOOP=true` | Scoop (Windows) | `SCOOP_BUCKET_REPO`, default `<owner>/scoop-bucket` |
-| `PUBLISH_WINGET=true` | winget (Windows) | `WINGET_IDENTIFIER`, for example `Publisher.Package`; `WINGET_INSTALLERS_REGEX` picks the setup (default: the command line's) |
-
-Set them under Settings > Secrets and variables > Actions.
-
-### Homebrew
-
-The workflow creates `<owner>/homebrew-tap` if it does not exist, then opens a pull request that adds or updates `Formula/<name>.rb`. The formula installs the PyPI source release in a virtualenv, with one resource per dependency taken from `uv.lock`. Merge the pull request to publish it.
-
-The first time, check the formula with `brew install --build-from-source <owner>/tap/<name>` and `brew test`. The dependencies are pure Python (Typer, Rich and what they need), so the formula should build without extra system packages.
-
-### Scoop
-
-The workflow creates `<owner>/scoop-bucket` if needed and opens a pull request that adds or updates `bucket/<name>.json`, which points at the portable zip on the release and can update itself (`checkver` and `autoupdate`).
-
-### winget
-
-winget updates an existing package, so the first submission is manual:
-
-1. Publish a release, so the setup is at a stable URL.
-2. Run `wingetcreate new <url of the command line setup.exe>` (`<name>-cli-<version>.setup.exe`) (or `winget install wingetcreate` first) and answer the prompts. Choose the installer type `nullsoft`, silent switches `/S`, and the package identifier you will put in `WINGET_IDENTIFIER`.
-3. Submit it. Microsoft's validation and review take from a few hours to several days; fix anything the bot reports on the pull request.
-4. After it is merged, set `PUBLISH_WINGET=true`. From then on each release opens an update pull request.
-
-## Installing
-
-What to tell your users, once the channels are on:
-
-| Channel | Install | Remove |
-| --- | --- | --- |
-| winget | `winget install <Identifier>` | `winget uninstall <Identifier>` |
-| Scoop | `scoop bucket add <name> https://github.com/<owner>/scoop-bucket`, then `scoop install <name>` | `scoop uninstall <name>` |
-| Homebrew | `brew install <owner>/tap/<name>` | `brew uninstall <name>` |
-| Debian, Ubuntu | `sudo apt install ./<name>_<version>_amd64.deb` | `sudo apt remove <name>` |
-| Fedora, RHEL | `sudo dnf install ./<name>-<version>-1.x86_64.rpm` | `sudo dnf remove <name>` |
-| Windows setup | run `<name>-<version>.setup.exe` (window) or `<name>-cli-<version>.setup.exe` (command line) from the release page | Settings > Apps |
-| PyPI (command line only) | `uv tool install <project>` or `pipx install <project>` | `uv tool uninstall <project>` |
-
-## Before the first release
-
-- Replace the window icon (`src/<ui package>/ui/public/icon.png`) with yours. Init has already generated new product GUIDs in `installer/windows/nsis/cli.nsi` and `ui.nsi`; keep them from now on.
-- Pin the NSIS and nfpm versions you want in `installer/tools.toml`, and check the `choco` version exists.
-- Add an email to the author in `pyproject.toml`, which Debian expects in the maintainer field.
-- Decide on signing, and on which channels to switch on.
+Homebrew, Scoop and winget are not updated by the workflows; add jobs to `release.yml` when you want them.

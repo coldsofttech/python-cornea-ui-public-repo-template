@@ -49,15 +49,11 @@ jobs:
           APP_TITLE: ${{ inputs.title }}
         run: python3 scripts/init_template.py --name "$APP_NAME" --title "$APP_TITLE"
 
-      - name: Read project names
-        run: python3 installer/projectinfo.py github
-
-      - name: Regenerate the lock file and the generated docs
+      - name: Regenerate the lock file and the OpenAPI document
         run: |
           uv lock
-          uv sync
-          uv run typer "$CLI_MODULE" utils docs --name "$CLI_NAME" --output docs/cli-reference.md
-          uv run python scripts/export_openapi.py
+          uv sync --all-packages
+          uv run python packages/api/scripts/export_openapi.py
 
       - name: Open pull request
         env:
@@ -81,6 +77,6 @@ jobs:
             --body "Replaces the template owner and repository name and renames the example packages and commands to \`$APP_NAME\`. Review and merge, then:
 
           - delete \`.github/workflows/init.yml\`
-          - replace the icon in \`src/${UI_PACKAGE}/ui/public/icon.png\`
+          - replace the icon in \`packages/ui/src/${APP_NAME}_ui/ui/public/icon.png\` and the artwork in \`brand/\`
           - add an email to the author in \`pyproject.toml\` and your contact details in \`CODE_OF_CONDUCT.md\`
           - apply the protections from \`docs/repo-setup.md\`"

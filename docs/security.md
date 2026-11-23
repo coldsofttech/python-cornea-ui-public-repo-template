@@ -1,29 +1,33 @@
 # Security
 
-How the API and the UI window protect requests. To report a vulnerability, see [SECURITY.md](../SECURITY.md).
+A high-level view of how this project is protected. Each package documents its own protections; start there for detail. To report a vulnerability, see [SECURITY.md](../SECURITY.md).
 
-## Under the UI window
+## Packages
 
-Cornea's `SecurityMiddleware` guards every mounted route, so the API adds no token of its own:
+| Package | Protects | Notes |
+| --- | --- | --- |
+| core (`example-package`) | input, errors and messages, dependencies | [Core security](../packages/core/docs/security.md) |
+| CLI (`example-cli`) | secrets you pass, output and logs, the installers | [CLI security](../packages/cli/docs/security.md) |
+| API (`example-api`) | requests when run on its own: API key, response headers, request size limit | [API security](../packages/api/docs/security.md) |
+| UI (`example-ui`) | the local window server: host and origin checks, start-up token, content security policy | [UI security](../packages/ui/docs/security.md) |
 
-- the `Host` must be on the allow-list (the bound `127.0.0.1:<port>` only)
-- state-changing requests (POST, PUT, PATCH, DELETE) must carry a matching `Origin`
-- a one-time start-up token is exchanged for an `HttpOnly`, `SameSite=Strict` session cookie
-- responses carry a strict content security policy and other protective headers
+The CLI, API and UI all build on the core library, so its protections apply to each of them.
 
-`example_ui` therefore mounts the routes with API-key checks switched off. Never expose these routes any other way.
+## Repository
 
-## Standalone API
-
-When run alone (`python -m example_api`), Cornea is absent, so the API protects itself:
-
-- **API key:** protected routes need an `X-API-Key` header matching `EXAMPLE_API_API_KEYS`. The app will not start without a key unless `EXAMPLE_API_AUTH_MODE=none`, which is for local development only. Keys are compared in constant time and never logged.
-- **Headers:** `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, a restrictive CSP, `Cache-Control: no-store` on `/api/` and HSTS over HTTPS.
-- **Body limit:** requests declaring more than `EXAMPLE_API_MAX_BODY_BYTES` get `413`. Also set a limit at your reverse proxy, since chunked bodies have no declared size.
-- **Docs hidden:** `/docs`, `/redoc` and `/openapi.json` are off unless `EXAMPLE_API_DOCS_ENABLED=true`.
-- **Errors:** a `500` never shows details; they go to the log with the request ID.
-- **Not included:** HTTPS, rate limiting, JWT and multi-user authentication, a database. Add them, or put the API behind a proxy, before exposing it publicly.
+- **Branch ruleset.** `main` needs a pull request with a code owner review and resolved conversations, the `ci` and `dependency-review` checks with an up-to-date branch, CodeQL results, squash merge only, and no deletion or force push. See [architecture](architecture.md#branch-governance).
+- **Secrets.** Secret scanning with push protection is on, and gitleaks runs in pre-commit. No token is stored for publishing: PyPI uses trusted publishing.
+- **Workflows.** Workflows ask for read-only permissions by default and raise them per job. Actions are pinned to version tags and kept current by Dependabot (seven-day cooldown), and `actionlint` and Semgrep's `p/github-actions` rules check them. Event values are passed through `env`, never expanded inside scripts.
+- **Environments.** Each release part publishes from its own GitHub environment, restricted to its tag pattern, so a branch cannot publish and a reviewer approves each release.
 
 ## Supply chain
 
-Dependabot covers Python, npm and Actions. `audit.yml` checks locked dependencies weekly, dependency review blocks vulnerable additions, and the lock files are committed.
+Dependabot covers Python, npm and Actions. Each package has its own audit and security workflows (`audit-<package>.yml`, `security-<package>.yml`) that check locked dependencies weekly and run static analysis, and `audit-ui.yml` also runs `npm audit`. Dependency review blocks vulnerable additions on pull requests, and the lock files are committed. Releases are published with trusted publishing, with no stored token (see [releasing](releasing.md)). Windows installers can be signed, and release files carry `SHA256SUMS.txt`.
+
+## Rules to keep
+
+1. Never commit secrets, and never pass them as command line arguments.
+2. Keep workflows least-privilege: add a permission to the job that needs it, not to the whole workflow.
+3. Keep the library free of output, the API closed by default, and the window bound to `127.0.0.1`.
+4. Add a dependency only when it earns its place, and check its licence and maintenance.
+5. Keep private vulnerability reporting enabled so the route in `SECURITY.md` works.

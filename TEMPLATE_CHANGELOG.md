@@ -4,6 +4,24 @@ Changes to the template itself. This file is removed when you initialise a repos
 
 ## [Unreleased]
 
+### Changed
+
+- The repository is a uv workspace of four packages, `example-package` (`packages/core`), `example-cli` (`packages/cli`), `example-api` (`packages/api`) and `example-ui` (`packages/ui`), each with its own `pyproject.toml`, tests (`unit/` and `integration/`), changelog, README and documentation.
+- The installers are built by one script (`installer/scripts/build.py`) from `installer/build.toml`, with one Windows setup for the command line and the window, a portable zip, and Linux deb and rpm packages. The names are read from each package's `pyproject.toml`, so `installer/projectinfo.py` and the NSIS and PyInstaller scripts per program are gone.
+- CI, audit, security and release workflows are split per package, share composite actions under `.github/actions/`, and a `changes` workflow limits pull requests to the parts they touch.
+- Releases are routed by tag (`v`, `cli-v`, `installer-v`), each with its own environment and `<package>-latest` markers.
+- Documentation is split per package, with repository-wide architecture, development, releasing and security pages.
+- The Init script and workflow follow the new layout.
+
+### Added
+
+- Sample icon files in `brand/light/png` for the Linux packages, and a `brand/README.md`.
+
+### Removed
+
+- The generated CLI reference (`docs/cli-reference.md`) and its CI check.
+- Homebrew, Scoop and winget release jobs and `scripts/update_manifests.py`; add them back to `release.yml` if you need them.
+
 ## [0.1.2] - 2026-11-11
 
 ### Added
